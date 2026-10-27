@@ -332,7 +332,7 @@ Wow_Multi-turn-Dialogue-System/
 ├── .env.example - 环境变量模板
 ├── .gitignore - Git 忽略文件
 ├── .dockerignore - Docker 构建忽略文件
-├── docker-compose.yml - Docker Compose 编排文件（ 13 个异构服务一键部署，按负载分配内存配额）
+├── docker-compose.yml - Docker Compose 编排文件（13 个异构服务一键部署，按负载分配内存配额）
 ├── Dockerfile - 应用镜像构建文件（分层构建，代码更新秒级重建容器）
 ├── requirements.txt - Python 依赖列表
 └── README.md - 项目说明文档
