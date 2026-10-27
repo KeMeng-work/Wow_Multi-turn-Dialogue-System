@@ -216,9 +216,9 @@ ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压
       - 4、多 Agent 协作，改造原有 LangGraph 单 Agent 模式。
       - 5、添加K3S部署，替代原有Docker Compose。
  
-
+## 📁 项目代码结构
 <details>
-<summary><b>📁 项目代码结构</b></summary>
+<summary><b>Wow_Multi-turn-Dialogue-System</b></summary>
 
 ```text
 Wow_Multi-turn-Dialogue-System/
