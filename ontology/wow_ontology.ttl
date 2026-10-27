@@ -1,0 +1,276 @@
+# =============================================================================
+# WoW 知识图谱本体（OWL 2，Turtle）
+#
+# 唯一标准：抽取约束、SHACL 校验规则、Neo4j 约束与索引均由 src/core/kg/ontology.py 从本文件生成，
+# 读写两端共用同一份定义（旧版 node_id / entity_id 不一致的问题由此根除）。
+#
+# 建模原则
+#   - 只建可核实的事实关系：每条关系必须有知识库原句作证据（不建 CAUSES / AFFECTS 一类抽象关系）
+#   - 关系不当实体：旧版 RELATION_CAUSAL / RELATION_SOLUTION 删除
+#   - 日期不当节点：改为实体的数据属性（releaseYear 等）
+#   - 只收有名称的实体：泛化词（fun / today / reading）不建节点
+#   - 关系有方向：domain → range；展示用正反两个中文名（rdfs:label / wow:inverseLabel）
+#
+# 推理（owlrl，OWL 2 RL）
+#   - 子关系：directedBy 等是 createdBy 的子关系，入库时补出父关系（标记 inferred）
+#   - 传递关系：locatedIn / subfieldOf / broader / partOf 在查询时用变长路径处理，不预先展开
+#   - 互逆关系：created 不单独存储，Neo4j 可双向遍历
+#
+# SAP 场景对照：类 ≈ 主数据对象（客户 / 物料 / 工厂），实体 IRI ≈ 主数据编号
+#
+# 版本记录
+#   1.2.0 (2026-10-18) 质量审计后补充：
+#         新增 weakAlias（alias 的子属性）：常见英文词别名（Apple、Mac、metal）只按原大小写匹配，且需上下文消歧
+#         新增 descriptionSource：描述来自知识库原文（kb）还是通用释义（gloss），描述不作为事实断言
+#   1.1.0 (2026-10-18) 抽取第 5 批时发现缺少"品牌归属 / 生产"关系：
+#         互斥组补全 Activity / Product / Genre / Field（反向测试发现"人物 + 运动"未被拦截）
+#         新增 ownedBy、producedBy；createdBy 起点加 FoodAndDrink（饮料配方）；partOf 起点加 Activity（奥运比赛项目）
+#         已抽取数据按新版本重新校验，"PepsiCo 收购必胜客"由 memberOf 改为 ownedBy
+#   1.0.0 (2026-10-18) 初版：25 个类、25 种关系
+# =============================================================================
+
+@prefix wow:  <http://wow-agent.local/ontology#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+<http://wow-agent.local/ontology>
+    a owl:Ontology ;
+    rdfs:label "WoW Knowledge Graph Ontology"@en , "WoW 知识图谱本体"@zh ;
+    owl:versionInfo "1.2.0" ;
+    owl:priorVersion "1.1.0" ;
+    rdfs:comment "面向 Agent 的知识图谱本体：事实关系、证据可溯源、支持多跳查询"@zh .
+
+# 自定义注解：关系的反向中文名（展示路径时使用）
+wow:inverseLabel a owl:AnnotationProperty ;
+    rdfs:comment "关系反向阅读时的中文名，如 directedBy 的反向为“导演了”"@zh .
+
+# =============================================================================
+# 类
+# =============================================================================
+
+wow:Entity a owl:Class ;
+    rdfs:label "Entity"@en , "实体"@zh ;
+    rdfs:comment "所有实体的顶层类；Neo4j 中所有实体节点带 :Entity 标签，唯一键 entity_id"@zh .
+
+wow:Person a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Person"@en , "人物"@zh .
+
+wow:Organization a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Organization"@en , "组织"@zh ;
+    rdfs:comment "公司、协会、联盟、球队、乐队、政府机构"@zh .
+wow:Company a owl:Class ; rdfs:subClassOf wow:Organization ;
+    rdfs:label "Company"@en , "公司"@zh .
+
+wow:Place a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Place"@en , "地点"@zh .
+wow:Country a owl:Class ; rdfs:subClassOf wow:Place ;
+    rdfs:label "Country"@en , "国家"@zh .
+wow:City a owl:Class ; rdfs:subClassOf wow:Place ;
+    rdfs:label "City"@en , "城市"@zh .
+
+wow:CreativeWork a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "CreativeWork"@en , "作品"@zh .
+wow:Film a owl:Class ; rdfs:subClassOf wow:CreativeWork ;
+    rdfs:label "Film"@en , "电影"@zh .
+wow:TVSeries a owl:Class ; rdfs:subClassOf wow:CreativeWork ;
+    rdfs:label "TVSeries"@en , "电视剧"@zh .
+wow:Book a owl:Class ; rdfs:subClassOf wow:CreativeWork ;
+    rdfs:label "Book"@en , "书籍"@zh ;
+    rdfs:comment "小说、非虚构作品、漫画书、系列丛书"@zh .
+wow:MusicWork a owl:Class ; rdfs:subClassOf wow:CreativeWork ;
+    rdfs:label "MusicWork"@en , "音乐作品"@zh .
+wow:VideoGame a owl:Class ; rdfs:subClassOf wow:CreativeWork ;
+    rdfs:label "VideoGame"@en , "电子游戏"@zh .
+wow:Artwork a owl:Class ; rdfs:subClassOf wow:CreativeWork ;
+    rdfs:label "Artwork"@en , "艺术品"@zh .
+
+wow:Genre a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Genre"@en , "体裁 / 流派"@zh ;
+    rdfs:comment "文艺体裁、音乐流派、艺术风格与运动"@zh .
+
+wow:Field a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Field"@en , "学科 / 领域"@zh .
+
+wow:Activity a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Activity"@en , "活动"@zh ;
+    rdfs:comment "有名称的运动、爱好、实践（徒步、素食主义、园艺）"@zh .
+wow:Sport a owl:Class ; rdfs:subClassOf wow:Activity ;
+    rdfs:label "Sport"@en , "运动项目"@zh .
+
+wow:Product a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Product"@en , "产品 / 技术"@zh ;
+    rdfs:comment "产品、技术、品牌、工具、交通工具"@zh .
+
+wow:Event a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Event"@en , "事件"@zh ;
+    rdfs:comment "历史事件、赛事、节日"@zh .
+
+wow:FoodAndDrink a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "FoodAndDrink"@en , "食物与饮品"@zh ;
+    rdfs:comment "菜肴、饮品、食材、菜系"@zh .
+
+wow:Organism a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Organism"@en , "生物"@zh .
+wow:Animal a owl:Class ; rdfs:subClassOf wow:Organism ;
+    rdfs:label "Animal"@en , "动物"@zh ;
+    rdfs:comment "动物与动物品种（如比格犬）"@zh .
+wow:Plant a owl:Class ; rdfs:subClassOf wow:Organism ;
+    rdfs:label "Plant"@en , "植物"@zh .
+
+wow:Concept a owl:Class ; rdfs:subClassOf wow:Entity ;
+    rdfs:label "Concept"@en , "概念"@zh ;
+    rdfs:comment "有名称的概念、理论、现象、颜色、制度"@zh .
+wow:MedicalCondition a owl:Class ; rdfs:subClassOf wow:Concept ;
+    rdfs:label "MedicalCondition"@en , "疾病 / 健康状况"@zh .
+
+# 互斥：一个实体不能同时是人物和运动等（拦截“Krav Maga 被标成人物”一类错误）；Concept 范围较宽，不参与互斥
+[] a owl:AllDisjointClasses ;
+    owl:members ( wow:Person wow:Organization wow:Place wow:CreativeWork wow:Event wow:Organism wow:FoodAndDrink
+                  wow:Activity wow:Product wow:Genre wow:Field ) .
+
+# =============================================================================
+# 数据属性
+# =============================================================================
+
+wow:name a owl:DatatypeProperty , owl:FunctionalProperty ;
+    rdfs:domain wow:Entity ; rdfs:range xsd:string ;
+    rdfs:label "规范英文名"@zh .
+wow:nameZh a owl:DatatypeProperty ;
+    rdfs:domain wow:Entity ; rdfs:range xsd:string ;
+    rdfs:label "中文名"@zh ;
+    rdfs:comment "补充别名，用于识别中文问题中的实体；不属于事实断言"@zh .
+wow:alias a owl:DatatypeProperty ; rdfs:subPropertyOf skos:altLabel ;
+    rdfs:domain wow:Entity ; rdfs:range xsd:string ;
+    rdfs:label "别名"@zh .
+wow:weakAlias a owl:DatatypeProperty ; rdfs:subPropertyOf wow:alias ;
+    rdfs:domain wow:Entity ; rdfs:range xsd:string ;
+    rdfs:label "弱别名"@zh ;
+    rdfs:comment "常见英文词或 3 个字母以内的别名：只按原大小写匹配，实体链接时需结合类型或上下文确认（1.2.0 新增）"@zh .
+wow:description a owl:DatatypeProperty ;
+    rdfs:domain wow:Entity ; rdfs:range xsd:string ;
+    rdfs:label "一句话描述（消歧用）"@zh .
+wow:descriptionSource a owl:DatatypeProperty , owl:FunctionalProperty ;
+    rdfs:domain wow:Entity ; rdfs:range xsd:string ;
+    rdfs:label "描述来源"@zh ;
+    rdfs:comment "kb = 可由知识库原文推出；gloss = 通用释义，只说明是什么，不含具体事实（1.2.0 新增）"@zh .
+wow:birthYear a owl:DatatypeProperty ; rdfs:domain wow:Person ; rdfs:range xsd:integer ;
+    rdfs:label "出生年份"@zh .
+wow:foundedYear a owl:DatatypeProperty ; rdfs:domain wow:Organization ; rdfs:range xsd:integer ;
+    rdfs:label "成立年份"@zh .
+wow:releaseYear a owl:DatatypeProperty ; rdfs:domain wow:CreativeWork ; rdfs:range xsd:integer ;
+    rdfs:label "发行年份"@zh .
+wow:year a owl:DatatypeProperty ; rdfs:domain wow:Event ; rdfs:range xsd:integer ;
+    rdfs:label "发生年份"@zh .
+
+# =============================================================================
+# 对象属性（关系）—— domain → range 即关系方向
+# =============================================================================
+
+# ── 创作 ─────────────────────────────────────────────────────────
+wow:createdBy a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:CreativeWork wow:Product wow:FoodAndDrink ) ] ;
+    rdfs:range  [ owl:unionOf ( wow:Person wow:Organization ) ] ;
+    owl:inverseOf wow:created ;
+    rdfs:label "由…创作"@zh ; wow:inverseLabel "创作了"@zh .
+wow:created a owl:ObjectProperty ; rdfs:label "创作了"@zh .
+
+wow:directedBy a owl:ObjectProperty ; rdfs:subPropertyOf wow:createdBy ;
+    rdfs:domain [ owl:unionOf ( wow:Film wow:TVSeries ) ] ; rdfs:range wow:Person ;
+    rdfs:label "由…导演"@zh ; wow:inverseLabel "导演了"@zh .
+wow:writtenBy a owl:ObjectProperty ; rdfs:subPropertyOf wow:createdBy ;
+    rdfs:domain wow:CreativeWork ; rdfs:range wow:Person ;
+    rdfs:label "由…编写"@zh ; wow:inverseLabel "编写了"@zh .
+wow:composedBy a owl:ObjectProperty ; rdfs:subPropertyOf wow:createdBy ;
+    rdfs:domain wow:CreativeWork ; rdfs:range wow:Person ;
+    rdfs:label "由…作曲"@zh ; wow:inverseLabel "作曲了"@zh .
+wow:performedBy a owl:ObjectProperty ; rdfs:subPropertyOf wow:createdBy ;
+    rdfs:domain wow:MusicWork ; rdfs:range [ owl:unionOf ( wow:Person wow:Organization ) ] ;
+    rdfs:label "由…演唱 / 演奏"@zh ; wow:inverseLabel "演唱 / 演奏了"@zh .
+wow:developedBy a owl:ObjectProperty ; rdfs:subPropertyOf wow:createdBy ;
+    rdfs:domain [ owl:unionOf ( wow:Product wow:VideoGame ) ] ;
+    rdfs:range  [ owl:unionOf ( wow:Person wow:Organization ) ] ;
+    rdfs:label "由…开发"@zh ; wow:inverseLabel "开发了"@zh .
+wow:starring a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Film wow:TVSeries ) ] ; rdfs:range wow:Person ;
+    rdfs:label "主演"@zh ; wow:inverseLabel "出演了"@zh .
+
+# ── 作品之间 ─────────────────────────────────────────────────────
+wow:basedOn a owl:ObjectProperty ;
+    rdfs:domain wow:CreativeWork ;
+    rdfs:range  [ owl:unionOf ( wow:CreativeWork wow:Event wow:Person ) ] ;
+    rdfs:label "改编自 / 取材于"@zh ; wow:inverseLabel "被改编为"@zh .
+wow:partOfSeries a owl:ObjectProperty ;
+    rdfs:domain wow:CreativeWork ; rdfs:range wow:CreativeWork ;
+    rdfs:label "属于系列"@zh ; wow:inverseLabel "系列包含"@zh .
+wow:hasGenre a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:CreativeWork wow:Person wow:Organization ) ] ; rdfs:range wow:Genre ;
+    rdfs:label "体裁 / 流派为"@zh ; wow:inverseLabel "的作品 / 代表"@zh .
+
+# ── 组织 ─────────────────────────────────────────────────────────
+wow:foundedBy a owl:ObjectProperty ;
+    rdfs:domain wow:Organization ; rdfs:range wow:Person ;
+    rdfs:label "由…创立"@zh ; wow:inverseLabel "创立了"@zh .
+wow:memberOf a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Person wow:Organization ) ] ; rdfs:range wow:Organization ;
+    rdfs:label "隶属于"@zh ; wow:inverseLabel "成员包括"@zh .
+wow:headquarteredIn a owl:ObjectProperty ;
+    rdfs:domain wow:Organization ; rdfs:range wow:Place ;
+    rdfs:label "总部位于"@zh ; wow:inverseLabel "是…的总部所在地"@zh .
+wow:ownedBy a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Product wow:FoodAndDrink wow:Organization ) ] ; rdfs:range wow:Organization ;
+    rdfs:label "归…所有"@zh ; wow:inverseLabel "拥有"@zh ;
+    rdfs:comment "品牌 / 子公司归属：必胜客 ownedBy 百事公司（1.1.0 新增）"@zh .
+wow:producedBy a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Product wow:FoodAndDrink ) ] ; rdfs:range wow:Organization ;
+    rdfs:label "由…生产"@zh ; wow:inverseLabel "生产"@zh ;
+    rdfs:comment "生产商：巧克力 producedBy 好时公司（1.1.0 新增）"@zh .
+wow:organizedBy a owl:ObjectProperty ;
+    rdfs:domain wow:Event ; rdfs:range wow:Organization ;
+    rdfs:label "由…主办"@zh ; wow:inverseLabel "主办了"@zh .
+
+# ── 地点与事件 ───────────────────────────────────────────────────
+wow:locatedIn a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Place wow:Organization wow:Event ) ] ; rdfs:range wow:Place ;
+    rdfs:label "位于"@zh ; wow:inverseLabel "包含"@zh .
+wow:bornIn a owl:ObjectProperty ;
+    rdfs:domain wow:Person ; rdfs:range wow:Place ;
+    rdfs:label "出生于"@zh ; wow:inverseLabel "是…的出生地"@zh .
+wow:occurredIn a owl:ObjectProperty ;
+    rdfs:domain wow:Event ; rdfs:range wow:Place ;
+    rdfs:label "发生于"@zh ; wow:inverseLabel "发生过"@zh .
+wow:participantIn a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Person wow:Organization ) ] ; rdfs:range wow:Event ;
+    rdfs:label "参与了"@zh ; wow:inverseLabel "参与者包括"@zh .
+
+# ── 知识与分类 ───────────────────────────────────────────────────
+wow:subfieldOf a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:domain wow:Field ; rdfs:range wow:Field ;
+    rdfs:label "是…的分支"@zh ; wow:inverseLabel "分支包括"@zh .
+wow:broader a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Concept wow:Genre wow:Activity wow:FoodAndDrink wow:Organism wow:Product wow:Field ) ] ;
+    rdfs:range  [ owl:unionOf ( wow:Concept wow:Genre wow:Activity wow:FoodAndDrink wow:Organism wow:Product wow:Field ) ] ;
+    rdfs:label "属于（上位类别）"@zh ; wow:inverseLabel "下位类别包括"@zh ;
+    rdfs:comment "“是一种”：比格犬 broader 狗，冰球 broader 运动"@zh .
+wow:partOf a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:domain [ owl:unionOf ( wow:FoodAndDrink wow:Organization wow:Event wow:Concept wow:Field wow:Activity ) ] ;
+    rdfs:range  [ owl:unionOf ( wow:FoodAndDrink wow:Organization wow:Event wow:Concept wow:Field ) ] ;
+    rdfs:label "是…的组成部分"@zh ; wow:inverseLabel "组成部分包括"@zh ;
+    rdfs:comment "部分-整体：披萨 partOf 意大利菜"@zh .
+wow:originatedIn a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Genre wow:Activity wow:FoodAndDrink wow:Concept wow:Organism wow:Product ) ] ;
+    rdfs:range wow:Place ;
+    rdfs:label "起源于"@zh ; wow:inverseLabel "是…的发源地"@zh .
+wow:madeFrom a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:FoodAndDrink wow:Product ) ] ;
+    rdfs:range  [ owl:unionOf ( wow:FoodAndDrink wow:Product wow:Organism wow:Concept ) ] ;
+    rdfs:label "由…制成"@zh ; wow:inverseLabel "可制成"@zh .
+wow:influencedBy a owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( wow:Person wow:Genre wow:CreativeWork wow:Activity ) ] ;
+    rdfs:range  [ owl:unionOf ( wow:Person wow:Genre wow:CreativeWork wow:Activity wow:Concept ) ] ;
+    rdfs:label "受…影响"@zh ; wow:inverseLabel "影响了"@zh .
+wow:practicedBy a owl:ObjectProperty ;
+    rdfs:domain wow:Activity ; rdfs:range [ owl:unionOf ( wow:Person wow:Organization ) ] ;
+    rdfs:label "代表人物 / 践行者"@zh ; wow:inverseLabel "践行"@zh .

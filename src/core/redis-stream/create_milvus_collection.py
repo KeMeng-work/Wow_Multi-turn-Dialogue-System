@@ -21,11 +21,11 @@ Milvus 知识库集合索引创建（Create Milvus Collection）
     - 已通过测试用例 migrate_milvus_test.py，足以支撑后续 Agent系统的 BM25 全文检索。
 
 """
-from pymilvus import MilvusClient, DataType
+from pymilvus import MilvusClient, DataType, Function, FunctionType
 
 # ========== 配置 ==========
 MILVUS_URI = "http://localhost:19530"
-COLLECTION_NAME = "wow_knowledge_base"
+COLLECTION_NAME = "wow_knowledge_base_v2"
 VECTOR_DIM = 768
 
 
@@ -37,14 +37,30 @@ def create_schema():
     schema.add_field("chunk_id", DataType.VARCHAR, max_length=200, is_primary=True)
     # 向量
     schema.add_field("vector", DataType.FLOAT_VECTOR, dim=VECTOR_DIM)
-    # 内容（启用短语匹配）
+    # 内容（多个 checked_sentences 拼接，供 LLM 阅读，small-to-big 大端）
     schema.add_field(
         "content",
         DataType.VARCHAR,
         max_length=65535,
+    )
+    # 单个 checked_sentence 文本（BM25 细粒度检索字段，与向量化颗粒度对齐）
+    schema.add_field(
+        "cs_text",
+        DataType.VARCHAR,
+        max_length=2000,
         enable_analyzer=True,
         enable_match=True,
     )
+    # BM25 稀疏向量字段（由 BM25 Function 自动填充，不需要手动写入）
+    schema.add_field("sparse", DataType.SPARSE_FLOAT_VECTOR)
+
+    # BM25 Function：将 cs_text 单句文本转换为 sparse 稀疏向量（细粒度匹配）
+    schema.add_function(Function(
+        name="bm25",
+        input_field_names=["cs_text"],
+        output_field_names=["sparse"],
+        function_type=FunctionType.BM25,
+    ))
     # 标量字段
     schema.add_field("source", DataType.VARCHAR, max_length=50)
     schema.add_field("document_id", DataType.VARCHAR, max_length=50)
@@ -127,6 +143,15 @@ def create_index_params():
     )
     index_params.add_index("split_type", "BITMAP", index_name="bitmap_split_type")
 
+    # BM25 稀疏向量索引（支撑全文检索）
+    index_params.add_index(
+        field_name="sparse",
+        index_type="SPARSE_INVERTED_INDEX",
+        metric_type="BM25",
+        params={"bm25_k1": 1.2, "bm25_b": 0.75},
+        index_name="idx_sparse_bm25",
+    )
+
     return index_params
 
 
@@ -138,15 +163,12 @@ def main():
         client.drop_collection(COLLECTION_NAME)
         print(f"已删除现有集合: {COLLECTION_NAME}")
 
-    # 创建 schema
+    # schema 和 index_params 必须同时传入 create_collection
+    # BM25 Function 只有在建集合时一并注册才能生效，分开调用 create_index 不会注册 Function
     schema = create_schema()
-    client.create_collection(COLLECTION_NAME, schema=schema)
-    print(f"集合 {COLLECTION_NAME} 创建成功")
-
-    # 创建索引
     index_params = create_index_params()
-    client.create_index(COLLECTION_NAME, index_params=index_params)
-    print("所有索引创建完成")
+    client.create_collection(COLLECTION_NAME, schema=schema, index_params=index_params)
+    print(f"集合 {COLLECTION_NAME} 创建成功（含 BM25 Function 和全部索引）")
 
     # 加载集合（查询前需要）
     client.load_collection(COLLECTION_NAME)

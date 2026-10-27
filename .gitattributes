@@ -1,0 +1,24 @@
+# 所有文本文件统一使用 LF 行尾（Linux 服务器部署）
+* text=auto eol=lf
+
+# 明确指定代码文件强制 LF
+*.py    text eol=lf
+*.sh    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.json  text eol=lf
+*.toml  text eol=lf
+*.cfg   text eol=lf
+*.ini   text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.env   text eol=lf
+*.sql   text eol=lf
+Dockerfile* text eol=lf
+
+# 二进制文件不转换
+*.png binary
+*.jpg binary
+*.webp binary
+*.onnx binary
+*.bin binary

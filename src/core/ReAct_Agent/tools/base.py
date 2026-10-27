@@ -19,6 +19,14 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 
+def _abbreviate(kwargs: dict) -> dict:
+    """日志用：过长的列表参数（如注入的已返回段落内容）只记录条数，避免整段文本刷屏；短列表（如实体名）原样记录"""
+    return {
+        k: (f"<{len(v)} items>" if isinstance(v, (list, tuple)) and len(str(v)) > 300 else v)
+        for k, v in kwargs.items()
+    }
+
+
 #    """统一创建工具的工厂函数，封装日志和异常处理，返回 LangChain StructuredTool 实例。"""
 def create_tool(
     *,
@@ -32,7 +40,7 @@ def create_tool(
     @functools.wraps(func)
     def wrapper(**kwargs) -> Any:
         # 监控工具调用的名称和参数
-        logger.info(f"调用工具 '{name}'，参数: {kwargs}")
+        logger.info(f"调用工具 '{name}'，参数: {_abbreviate(kwargs)}")
         try:
             result = func(**kwargs)
             # 监控工具调用是否成功

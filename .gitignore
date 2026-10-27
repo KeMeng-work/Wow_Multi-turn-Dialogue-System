@@ -32,3 +32,11 @@ quantization/
 
 # Git
 .git
+outputs/
+*.log
+screenshot/
+/*.jpg
+/*.png
+/*.webp
+CLAUDE.md
+!.env.example

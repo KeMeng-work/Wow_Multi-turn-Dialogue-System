@@ -1,7 +1,9 @@
 # config/paths.py
 """
-生产级路径配置管理
-统一管理项目中的所有文件路径，确保跨平台兼容性和团队协作一致性
+生产级路径配置管理:
+统一管理项目中的所有文件路径
+确保路径写法、依赖符合Linux系统移植
+确保跨平台兼容性和团队协作一致性
 """
 
 import os
@@ -32,6 +34,7 @@ class ProjectPaths:
         ]
         # 模型子目录（确保路径存在）
         model_subdirs = [
+            self.nomic_embed_model,
             self.embedding_model.parent,
             self.spacy_ner_model.parent,
             self.reranker_model.parent,
@@ -85,8 +88,16 @@ class ProjectPaths:
     # ======================== 模型文件 ========================
 
     @property
+    def nomic_embed_model(self) -> Path:
+        """nomic-embed-text 模型路径（在线推理，ONNX 格式，支持环境变量覆盖）"""
+        env_path = os.getenv('NOMIC_EMBED_MODEL_PATH')
+        if env_path:
+            return Path(env_path)
+        return self.models / "nomic_embed_model_int8"
+
+    @property
     def embedding_model(self) -> Path:
-        """嵌入模型路径（支持环境变量覆盖）"""
+        """all-mpnet-base-v2 路径（离线 chunking 脚本专用，支持环境变量覆盖）"""
         env_path = os.getenv('EMBEDDING_MODEL_PATH')
         if env_path:
             return Path(env_path)
@@ -106,15 +117,22 @@ class ProjectPaths:
         env_path = os.getenv('RERANKER_MODEL_PATH')
         if env_path:
             return Path(env_path)
-        return self.models / "reranker_model"
+        return self.models / "bge-reranker-v2-m3"
 
     @property
     def translator_model(self) -> Path:
-        """翻译模型路径（支持环境变量覆盖）"""
+        """
+        翻译模型路径（支持环境变量覆盖）。
+
+        兼容两种目录结构：
+        1. 服务器标准格式（推荐）：translate_model/ 下直接含 config.json
+        2. HuggingFace 缓存格式（本地 Windows 下载）：translate_model/snapshots/<hash>/
+           自动探测并返回 snapshot 子目录，使 from_pretrained() 和 ONNX 导出正常工作。
+        """
         env_path = os.getenv('TRANSLATOR_MODEL_PATH')
         if env_path:
             return Path(env_path)
-        return self.models / "translator_model"
+        return self.models / "translate_model_int8"
 
     # 工具方法
     def ensure_file_path(self, file_path: Path) -> bool:
@@ -133,7 +151,7 @@ class ProjectPaths:
         critical_paths = {
             "project_root": self.project_root,
             "raw": self.raw_data,
-            "embedding_model": self.embedding_model,
+            "nomic_embed_model_int8": self.nomic_embed_model,
             "reranker_model": self.reranker_model,
             "translator_model": self.translator_model,
             "processed": self.processed_data,

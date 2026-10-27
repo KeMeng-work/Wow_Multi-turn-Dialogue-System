@@ -15,7 +15,8 @@ from query_rewriter import QueryRewriter
 # ========== 配置 ==========
 REDIS_HOST = "localhost"
 REDIS_PORT = 6380
-MODEL_NAME = "qwen3-4b-rewrite"
+VLLM_BASE_URL = "http://localhost:8001/v1"
+VLLM_MODEL = "qwen3-4b"
 MAX_HISTORY_TURNS = 3
 SIMILARITY_THRESHOLD = 0.75        # 语义相似度阈值
 
@@ -25,7 +26,8 @@ redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=Tr
 rewriter = QueryRewriter(
     redis_client=redis_client,
     max_history_turns=MAX_HISTORY_TURNS,
-    ollama_model=MODEL_NAME,
+    vllm_base_url=VLLM_BASE_URL,
+    vllm_model=VLLM_MODEL,
     rewrite_timeout=150,
 )
 

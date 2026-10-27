@@ -1,0 +1,85 @@
+# ════════════════════════════════════════════════════
+# 1、接口
+# ════════════════════════════════════════════════════
+bind 0.0.0.0
+protected-mode yes
+loadmodule /opt/redis-stack/lib/redisbloom.so
+
+
+# ════════════════════════════════════════════════════
+# 2、内存管理（生产级核心）
+# ════════════════════════════════════════════════════
+
+# 限制redis最大内存，操作系统内存的20%
+maxmemory 2gb
+
+# allkeys-lru：所有 key 均参与淘汰，优内存耗尽被 OOM Killer 杀死
+maxmemory-policy allkeys-lru
+
+
+# 异步淘汰，避免淘汰时阻塞主线程
+lazyfree-lazy-eviction yes
+lazyfree-lazy-expire yes
+lazyfree-lazy-server-del yes
+
+# ════════════════════════════════════════════════════
+# 3、AOF 持久化（生产级核心）
+# ════════════════════════════════════════════════════
+
+# 作用：同时开启 AOF 和 RDB，以 RDB 作为 AOF 文件的头部。
+# 生产级价值：重启时先快速加载 RDB 快照，再回放少量 AOF 增量，兼顾数据完整性与恢复速度。
+appendonly yes
+appendfilename "appendonly.aof"
+
+# 每秒刷盘一次，最多丢失 1 秒数据
+appendfsync everysec
+
+# 混合持久化：重启时先加载 RDB 快照，再回放 AOF 增量
+aof-use-rdb-preamble yes
+
+# AOF 重写控制（两个核心超参，两者皆满足才执行重写）
+
+# 最大增长幅度：当前重写文件相比上次重写文件的size增长比，超过100%则重写，经验法则取100%
+auto-aof-rewrite-percentage 100
+
+# 最小文件size，AOF文件必须大于64mb才执行重写，经验法则取64mb
+auto-aof-rewrite-min-size 64mb
+
+# 重写期间不执行 appendfsync，避免磁盘 I/O 竞争
+no-appendfsync-on-rewrite yes
+
+# 重写时每 32MB 执行一次 fsync，平滑磁盘压力（避免最后一次性 fsync 巨大文件）
+aof-rewrite-incremental-fsync yes
+
+# ════════════════════════════════════════════════════
+# 4、RDB 快照（作为 AOF 的补充备份层）
+# ════════════════════════════════════════════════════
+save 900 1
+save 300 10
+save 60 10000
+rdbcompression yes
+rdbchecksum yes
+
+# 保持默认 yes：RDB 失败时阻断写入，让错误暴露直接触发告警，而不是悄悄吞掉错误继续运行
+stop-writes-on-bgsave-error yes
+
+# ════════════════════════════════════════════════════
+# 5、性能与稳定性
+# ════════════════════════════════════════════════════
+tcp-keepalive 300
+hz 10
+dynamic-hz yes
+
+# ════════════════════════════════════════════════════
+# 6、慢查询监控
+# ════════════════════════════════════════════════════
+
+# 超过 10ms 的命令记录到慢查询日志，pipeline正常应在 1ms 以内，超过说明有问题
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+
+# ════════════════════════════════════════════════════
+# 7、日志
+# ════════════════════════════════════════════════════
+loglevel notice
+logfile ""

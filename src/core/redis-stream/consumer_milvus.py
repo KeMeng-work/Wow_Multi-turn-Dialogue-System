@@ -9,10 +9,9 @@ import redis
 from pymilvus import MilvusClient
 import logging
 import os
+from config.config_path import REDIS_CONFIG, MILVUS_CONFIG, MILVUS_COLLECTION
 
 # ========== 配置 ==========
-REDIS_HOST = "localhost"
-REDIS_PORT = 6380
 REDIS_STREAM = "knowledge_pipeline"
 REDIS_DLQ = "knowledge_pipeline_dlq"        # 死信队列名称
 CONSUMER_GROUP = "group_milvus"
@@ -20,9 +19,6 @@ CONSUMER_NAME = f"consumer_{os.getpid()}"    # 每个实例唯一
 MAX_RETRIES = 3                               # 最大重试次数
 BATCH_SIZE = 10                                # 每次读取消息数量
 BLOCK_MS = 5000                                # 没有消息时阻塞 5 秒
-
-MILVUS_URI = "http://localhost:19530"
-MILVUS_COLLECTION = "wow_knowledge_base"
 
 
 def setup_logging():
@@ -34,9 +30,16 @@ def setup_logging():
     return logging.getLogger(__name__)
 
 
-def connect_redis(host, port, decode=True):
-    """连接 Redis"""
-    r = redis.Redis(host=host, port=port, decode_responses=decode)
+def connect_redis(decode=True):
+    """连接 Redis。
+    socket_timeout 必须大于 BLOCK_MS，否则阻塞等待消息时会误触发超时异常。
+    """
+    cfg = {
+        **REDIS_CONFIG,
+        'decode_responses': decode,
+        'socket_timeout': BLOCK_MS / 1000 + 10,   # 比阻塞窗口多 10s 的余量
+    }
+    r = redis.Redis(**cfg)
     r.ping()
     return r
 
@@ -44,7 +47,7 @@ def connect_redis(host, port, decode=True):
 def ensure_consumer_group(redis_client, stream, group):
     """确保消费者组存在"""
     try:
-        redis_client.xgroup_create(stream, group, id="0", mkstream=True)
+        redis_client.xgroup_create(stream, group, id="$", mkstream=True)
         logger.info(f"消费者组 {group} 创建成功")
     except redis.exceptions.ResponseError as e:
         if "BUSYGROUP" in str(e):
@@ -53,10 +56,10 @@ def ensure_consumer_group(redis_client, stream, group):
             raise
 
 
-def connect_milvus(uri, collection):
+def connect_milvus():
     """连接 Milvus 并加载集合"""
-    client = MilvusClient(uri=uri)
-    client.load_collection(collection)
+    client = MilvusClient(**MILVUS_CONFIG)
+    client.load_collection(MILVUS_COLLECTION)
     logger.info("Milvus 连接成功，集合已加载")
     return client
 
@@ -150,6 +153,7 @@ def process_message(msg_data, milvus_client):
             "keywords_json": msg_data.get("keywords_json"),
             "ner_entities_json": msg_data.get("ner_entities_json"),
             "relations_json": msg_data.get("relations_json"),
+            "cs_text": msg_data.get("cs_text", ""),
         }
         upsert_to_milvus(milvus_client, MILVUS_COLLECTION, data)
         logger.info(f"Upsert 成功: {chunk_id}")
@@ -215,6 +219,9 @@ def main_loop(redis_client, milvus_client):
                             redis_client.xadd(REDIS_STREAM, processed_data)
                             redis_client.xack(REDIS_STREAM, CONSUMER_GROUP, msg_id)
 
+        except redis.exceptions.TimeoutError:
+            # xreadgroup 阻塞窗口内无消息，属于正常情况，静默继续
+            continue
         except KeyboardInterrupt:
             logger.info("消费者被手动停止")
             break
@@ -228,11 +235,11 @@ def main():
     logger = setup_logging()
 
     # 连接 Redis
-    r = connect_redis(REDIS_HOST, REDIS_PORT)
+    r = connect_redis()
     ensure_consumer_group(r, REDIS_STREAM, CONSUMER_GROUP)
 
     # 连接 Milvus
-    milvus_client = connect_milvus(MILVUS_URI, MILVUS_COLLECTION)
+    milvus_client = connect_milvus()
 
     # 进入主循环
     main_loop(r, milvus_client)

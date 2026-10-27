@@ -1,36 +1,67 @@
+# 敏感信息（绝不打包进镜像）
+.env
+.env.local
+.env.production
+
+# 模型文件（体积大，通过 volume 挂载，无需打包）
+src/models/
+
+# Git 历史
+.git
+.gitignore
+
 # Python 缓存
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 .pytest_cache
-.coverage
-htmlcov
 
-# 虚拟环境
-.venv
-venv
-env
-ENV
+# 运行时生成目录
+logs/
+data/
+outputs/
 
 # IDE
 .vscode
 .idea
 
-# 日志和数据目录（运行时挂载）
-logs/
-output/
-data/
+# 文档和截图
+screenshot/
+*.md
 
-# 模型文件（通过卷挂载）
-models/
+# 数据目录（体积大，通过 volume 挂载，无需打包）
+data/
+knowledge/
 quantization/
 
-# 环境变量（敏感）
-.env
-.env.*
+# 如果有 Python 虚拟环境
+venv/
+.venv/
+env/
 
-# Git
-.git
-.gitignore
+# 压缩包和二进制文件
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.pkl
+*.joblib
+*.h5
+*.pb
+*.onnx
+*.db
+*.sqlite3
 
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# ========== 新增排除 ==========
+# Neo4j 插件目录（仅用于数据库容器，app 构建时不需要）
+neo4j/
+# 压测产物与根目录下的截图、日志、报告（2026-10-08）；*.xx 只匹配根目录，不影响 src/ 下的静态文件（如前端页面）
+loadtest/
+*.jpg
+*.png
+*.log
+*.html

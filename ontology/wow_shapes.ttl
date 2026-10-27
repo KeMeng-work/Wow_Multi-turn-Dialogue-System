@@ -1,0 +1,287 @@
+# 由 src/core/kg/ontology.py 从 wow_ontology.ttl 自动生成，请勿手改
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix wow: <http://wow-agent.local/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+wow:ActivityDisjointShape a sh:NodeShape ;
+    sh:message "Activity 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Activity .
+
+wow:CreativeWorkDisjointShape a sh:NodeShape ;
+    sh:message "CreativeWork 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:CreativeWork .
+
+wow:EntityShape a sh:NodeShape ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:maxCount 1 ;
+            sh:minCount 1 ;
+            sh:path wow:name ],
+        [ sh:in ( "kb" "gloss" ) ;
+            sh:maxCount 1 ;
+            sh:path wow:descriptionSource ] ;
+    sh:targetClass wow:Entity .
+
+wow:EventDisjointShape a sh:NodeShape ;
+    sh:message "Event 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Event .
+
+wow:FieldDisjointShape a sh:NodeShape ;
+    sh:message "Field 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Field .
+
+wow:FoodAndDrinkDisjointShape a sh:NodeShape ;
+    sh:message "FoodAndDrink 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:FoodAndDrink .
+
+wow:GenreDisjointShape a sh:NodeShape ;
+    sh:message "Genre 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Genre .
+
+wow:OrganismDisjointShape a sh:NodeShape ;
+    sh:message "Organism 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Organism .
+
+wow:OrganizationDisjointShape a sh:NodeShape ;
+    sh:message "Organization 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Person ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Organization .
+
+wow:PersonDisjointShape a sh:NodeShape ;
+    sh:message "Person 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Place ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Person .
+
+wow:PlaceDisjointShape a sh:NodeShape ;
+    sh:message "Place 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Product ] ) ] ;
+    sh:targetClass wow:Place .
+
+wow:ProductDisjointShape a sh:NodeShape ;
+    sh:message "Product 与其他互斥类同时出现"@zh ;
+    sh:not [ sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Organization ] [ sh:class wow:Person ] [ sh:class wow:Place ] ) ] ;
+    sh:targetClass wow:Product .
+
+wow:basedOnShape a sh:NodeShape ;
+    sh:message "basedOn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:CreativeWork ] ) ;
+    sh:property [ sh:message "basedOn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:CreativeWork ] [ sh:class wow:Event ] [ sh:class wow:Person ] ) ;
+            sh:path wow:basedOn ] ;
+    sh:targetSubjectsOf wow:basedOn .
+
+wow:bornInShape a sh:NodeShape ;
+    sh:message "bornIn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Person ] ) ;
+    sh:property [ sh:message "bornIn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Place ] ) ;
+            sh:path wow:bornIn ] ;
+    sh:targetSubjectsOf wow:bornIn .
+
+wow:broaderShape a sh:NodeShape ;
+    sh:message "broader 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Activity ] [ sh:class wow:Concept ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Product ] ) ;
+    sh:property [ sh:message "broader 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Activity ] [ sh:class wow:Concept ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Product ] ) ;
+            sh:path wow:broader ] ;
+    sh:targetSubjectsOf wow:broader .
+
+wow:composedByShape a sh:NodeShape ;
+    sh:message "composedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:CreativeWork ] ) ;
+    sh:property [ sh:message "composedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Person ] ) ;
+            sh:path wow:composedBy ] ;
+    sh:targetSubjectsOf wow:composedBy .
+
+wow:createdByShape a sh:NodeShape ;
+    sh:message "createdBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:CreativeWork ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Product ] ) ;
+    sh:property [ sh:message "createdBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+            sh:path wow:createdBy ] ;
+    sh:targetSubjectsOf wow:createdBy .
+
+wow:developedByShape a sh:NodeShape ;
+    sh:message "developedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Product ] [ sh:class wow:VideoGame ] ) ;
+    sh:property [ sh:message "developedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+            sh:path wow:developedBy ] ;
+    sh:targetSubjectsOf wow:developedBy .
+
+wow:directedByShape a sh:NodeShape ;
+    sh:message "directedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Film ] [ sh:class wow:TVSeries ] ) ;
+    sh:property [ sh:message "directedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Person ] ) ;
+            sh:path wow:directedBy ] ;
+    sh:targetSubjectsOf wow:directedBy .
+
+wow:foundedByShape a sh:NodeShape ;
+    sh:message "foundedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Organization ] ) ;
+    sh:property [ sh:message "foundedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Person ] ) ;
+            sh:path wow:foundedBy ] ;
+    sh:targetSubjectsOf wow:foundedBy .
+
+wow:hasGenreShape a sh:NodeShape ;
+    sh:message "hasGenre 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:CreativeWork ] [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+    sh:property [ sh:message "hasGenre 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Genre ] ) ;
+            sh:path wow:hasGenre ] ;
+    sh:targetSubjectsOf wow:hasGenre .
+
+wow:headquarteredInShape a sh:NodeShape ;
+    sh:message "headquarteredIn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Organization ] ) ;
+    sh:property [ sh:message "headquarteredIn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Place ] ) ;
+            sh:path wow:headquarteredIn ] ;
+    sh:targetSubjectsOf wow:headquarteredIn .
+
+wow:influencedByShape a sh:NodeShape ;
+    sh:message "influencedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Activity ] [ sh:class wow:CreativeWork ] [ sh:class wow:Genre ] [ sh:class wow:Person ] ) ;
+    sh:property [ sh:message "influencedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Activity ] [ sh:class wow:Concept ] [ sh:class wow:CreativeWork ] [ sh:class wow:Genre ] [ sh:class wow:Person ] ) ;
+            sh:path wow:influencedBy ] ;
+    sh:targetSubjectsOf wow:influencedBy .
+
+wow:locatedInShape a sh:NodeShape ;
+    sh:message "locatedIn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Event ] [ sh:class wow:Organization ] [ sh:class wow:Place ] ) ;
+    sh:property [ sh:message "locatedIn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Place ] ) ;
+            sh:path wow:locatedIn ] ;
+    sh:targetSubjectsOf wow:locatedIn .
+
+wow:madeFromShape a sh:NodeShape ;
+    sh:message "madeFrom 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:FoodAndDrink ] [ sh:class wow:Product ] ) ;
+    sh:property [ sh:message "madeFrom 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Concept ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Organism ] [ sh:class wow:Product ] ) ;
+            sh:path wow:madeFrom ] ;
+    sh:targetSubjectsOf wow:madeFrom .
+
+wow:memberOfShape a sh:NodeShape ;
+    sh:message "memberOf 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+    sh:property [ sh:message "memberOf 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] ) ;
+            sh:path wow:memberOf ] ;
+    sh:targetSubjectsOf wow:memberOf .
+
+wow:occurredInShape a sh:NodeShape ;
+    sh:message "occurredIn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Event ] ) ;
+    sh:property [ sh:message "occurredIn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Place ] ) ;
+            sh:path wow:occurredIn ] ;
+    sh:targetSubjectsOf wow:occurredIn .
+
+wow:organizedByShape a sh:NodeShape ;
+    sh:message "organizedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Event ] ) ;
+    sh:property [ sh:message "organizedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] ) ;
+            sh:path wow:organizedBy ] ;
+    sh:targetSubjectsOf wow:organizedBy .
+
+wow:originatedInShape a sh:NodeShape ;
+    sh:message "originatedIn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Activity ] [ sh:class wow:Concept ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Genre ] [ sh:class wow:Organism ] [ sh:class wow:Product ] ) ;
+    sh:property [ sh:message "originatedIn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Place ] ) ;
+            sh:path wow:originatedIn ] ;
+    sh:targetSubjectsOf wow:originatedIn .
+
+wow:ownedByShape a sh:NodeShape ;
+    sh:message "ownedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:FoodAndDrink ] [ sh:class wow:Organization ] [ sh:class wow:Product ] ) ;
+    sh:property [ sh:message "ownedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] ) ;
+            sh:path wow:ownedBy ] ;
+    sh:targetSubjectsOf wow:ownedBy .
+
+wow:partOfSeriesShape a sh:NodeShape ;
+    sh:message "partOfSeries 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:CreativeWork ] ) ;
+    sh:property [ sh:message "partOfSeries 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:CreativeWork ] ) ;
+            sh:path wow:partOfSeries ] ;
+    sh:targetSubjectsOf wow:partOfSeries .
+
+wow:partOfShape a sh:NodeShape ;
+    sh:message "partOf 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Activity ] [ sh:class wow:Concept ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Organization ] ) ;
+    sh:property [ sh:message "partOf 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Concept ] [ sh:class wow:Event ] [ sh:class wow:Field ] [ sh:class wow:FoodAndDrink ] [ sh:class wow:Organization ] ) ;
+            sh:path wow:partOf ] ;
+    sh:targetSubjectsOf wow:partOf .
+
+wow:participantInShape a sh:NodeShape ;
+    sh:message "participantIn 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+    sh:property [ sh:message "participantIn 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Event ] ) ;
+            sh:path wow:participantIn ] ;
+    sh:targetSubjectsOf wow:participantIn .
+
+wow:performedByShape a sh:NodeShape ;
+    sh:message "performedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:MusicWork ] ) ;
+    sh:property [ sh:message "performedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+            sh:path wow:performedBy ] ;
+    sh:targetSubjectsOf wow:performedBy .
+
+wow:practicedByShape a sh:NodeShape ;
+    sh:message "practicedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Activity ] ) ;
+    sh:property [ sh:message "practicedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] [ sh:class wow:Person ] ) ;
+            sh:path wow:practicedBy ] ;
+    sh:targetSubjectsOf wow:practicedBy .
+
+wow:producedByShape a sh:NodeShape ;
+    sh:message "producedBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:FoodAndDrink ] [ sh:class wow:Product ] ) ;
+    sh:property [ sh:message "producedBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Organization ] ) ;
+            sh:path wow:producedBy ] ;
+    sh:targetSubjectsOf wow:producedBy .
+
+wow:starringShape a sh:NodeShape ;
+    sh:message "starring 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Film ] [ sh:class wow:TVSeries ] ) ;
+    sh:property [ sh:message "starring 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Person ] ) ;
+            sh:path wow:starring ] ;
+    sh:targetSubjectsOf wow:starring .
+
+wow:subfieldOfShape a sh:NodeShape ;
+    sh:message "subfieldOf 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:Field ] ) ;
+    sh:property [ sh:message "subfieldOf 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Field ] ) ;
+            sh:path wow:subfieldOf ] ;
+    sh:targetSubjectsOf wow:subfieldOf .
+
+wow:writtenByShape a sh:NodeShape ;
+    sh:message "writtenBy 的起点类型不符合本体"@zh ;
+    sh:or ( [ sh:class wow:CreativeWork ] ) ;
+    sh:property [ sh:message "writtenBy 的终点类型不符合本体"@zh ;
+            sh:or ( [ sh:class wow:Person ] ) ;
+            sh:path wow:writtenBy ] ;
+    sh:targetSubjectsOf wow:writtenBy .
+

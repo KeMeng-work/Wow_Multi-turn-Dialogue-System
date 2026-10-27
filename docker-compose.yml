@@ -1,89 +1,539 @@
-version: '3.8'
 
 services:
-  redis:
-    image: redis/redis-stack
-    container_name: redis
-    ports:
-      - "6380:6379"          # 映射到宿主机6380，避免与本地可能运行的Redis冲突
-    volumes:
-      - redis_data:/data
+
+  # ══════════════════════════════════════════════════════════
+  # Milvus 三件套（向量数据库）
+  # ══════════════════════════════════════════════════════════
+  milvus-etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.18
     restart: unless-stopped
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - milvus_etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://milvus-etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
-  milvus:
-    image: milvusdb/milvus:v2.6.6
-    container_name: milvus
+  milvus-minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    restart: unless-stopped
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - milvus_minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
     ports:
-      - "19530:19530"
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  milvus-standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.6.6
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: milvus-etcd:2379
+      MINIO_ADDRESS: milvus-minio:9000
+      MQ_TYPE: woodpecker
     volumes:
       - milvus_data:/var/lib/milvus
-    environment:
-      - ETCD_USE_EMBED=true
-      - ETCD_DATA_DIR=/var/lib/milvus/etcd
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  neo4j:
-    image: neo4j:2026.01.4
-    container_name: neo4j
     ports:
-      - "7474:7474"          # HTTP 控制台
-      - "7687:7687"          # Bolt 协议
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-password}   # 密码从 .env 读取，默认 password
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      milvus-etcd:
+        condition: service_healthy
+      milvus-minio:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # ══════════════════════════════════════════════════════════
+  # Redis（短期记忆 + 高频缓存）
+  # ══════════════════════════════════════════════════════════
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis
+    ports:
+      - "6380:6379"
     volumes:
-      - neo4j_data:/data
+      - redis_data:/data
+      - ./config/redis_conf:/redis-stack.conf
+    command: redis-server /redis-stack.conf --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - .env
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+        reservations:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
 
-#  ollama:
-#    image: ollama/ollama:latest
-#    container_name: ollama
-#    ports:
-#      - "11434:11434"
-#    volumes:
-#      - ollama_data:/root/.ollama
-#    restart: unless-stopped
-#    networks:
-#      - app-network
+  # ══════════════════════════════════════════════════════════
+  # Neo4j（知识图谱，关系验证）
+  # ══════════════════════════════════════════════════════════
+  neo4j:
+      image: neo4j:2026.01.4
+      container_name: neo4j
+      ports:
+        - "7474:7474"
+        - "7687:7687"
+      environment:
+        NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-password}
+      volumes:
+        - neo4j_data:/data
+      restart: unless-stopped
+      networks:
+        - app-network
+      healthcheck:
+        test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+        interval: 15s
+        timeout: 10s
+        retries: 5
+        start_period: 30s
+      deploy:
+        resources:
+          limits:
+            memory: 2G
+          reservations:
+            memory: 512M
+      logging:
+        driver: "json-file"
+        options:
+          max-size: "100m"
+          max-file: "5"
 
+  # ══════════════════════════════════════════════════════════
+  # PostgreSQL（对话历史 + 长期记忆，含 pgvector）
+  # ══════════════════════════════════════════════════════════
+  postgres:
+    image: pgvector/pgvector:pg16-trixie   # 使用官方预构建的 pgvector 镜像
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${PG_DB}
+      POSTGRES_USER:     ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init/01_schema_conversation.sql:/docker-entrypoint-initdb.d/01_schema_conversation.sql:ro
+      - ./init/02_schema_vector.sql:/docker-entrypoint-initdb.d/02_schema_vector.sql:ro
+      - ./init/03_schema_long_term_memory.sql:/docker-entrypoint-initdb.d/03_schema_long_term_memory.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app-network
+
+  # ══════════════════════════════════════════════════════════
+  # Langfuse v3（LLM 可观测性）+ ClickHouse（列式存储 trace 数据）
+  # 首次启动后：浏览器访问 :3000 → 注册 → 创建 Project → Settings → API Keys
+  # SDK 4.15.1 使用 OTLP 协议，需 v3 服务端支持
+  # ══════════════════════════════════════════════════════════
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: langfuse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       langfuse
+      POSTGRES_USER:     langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD:-langfuse}
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.12-alpine
+    container_name: clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB:                      default
+      CLICKHOUSE_USER:                    clickhouse
+      CLICKHOUSE_PASSWORD:                ${CLICKHOUSE_PASSWORD:-clickhouse}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8123/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  langfuse-server:
+    image: langfuse/langfuse:3
+    container_name: langfuse-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:             postgresql://langfuse:${LANGFUSE_DB_PASSWORD:-langfuse}@langfuse-db:5432/langfuse
+      NEXTAUTH_URL:             http://localhost:3000
+      NEXTAUTH_SECRET:          ${LANGFUSE_NEXTAUTH_SECRET}
+      SALT:                     ${LANGFUSE_SALT}
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL:           http://clickhouse:8123
+      CLICKHOUSE_USER:          clickhouse
+      CLICKHOUSE_PASSWORD:      ${CLICKHOUSE_PASSWORD:-clickhouse}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_CONNECTION_STRING:  redis://:${REDIS_PASSWORD}@redis:6379
+      # S3 事件存储（复用 Milvus 的 MinIO）
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET:               langfuse-events
+      LANGFUSE_S3_EVENT_UPLOAD_REGION:               us-east-1
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT:             http://milvus-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID:        minioadmin
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY:    minioadmin
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE:     "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET:               langfuse-media
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION:               us-east-1
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT:             http://milvus-minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID:        minioadmin
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY:    minioadmin
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE:     "true"
+      NODE_OPTIONS: "--max-old-space-size=1536"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: langfuse-worker
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:             postgresql://langfuse:${LANGFUSE_DB_PASSWORD:-langfuse}@langfuse-db:5432/langfuse
+      SALT:                     ${LANGFUSE_SALT}
+      NEXTAUTH_SECRET:          ${LANGFUSE_NEXTAUTH_SECRET}
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL:           http://clickhouse:8123
+      CLICKHOUSE_USER:          clickhouse
+      CLICKHOUSE_PASSWORD:      ${CLICKHOUSE_PASSWORD:-clickhouse}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_CONNECTION_STRING:  redis://:${REDIS_PASSWORD}@redis:6379
+      # S3 事件存储（复用 Milvus 的 MinIO）
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET:               langfuse-events
+      LANGFUSE_S3_EVENT_UPLOAD_REGION:               us-east-1
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT:             http://milvus-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID:        minioadmin
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY:    minioadmin
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE:     "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET:               langfuse-media
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION:               us-east-1
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT:             http://milvus-minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID:        minioadmin
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY:    minioadmin
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE:     "true"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ══════════════════════════════════════════════════════════
+  # TEI 重排器（bge-reranker-v2-m3 FP16，GPU）
+  # ══════════════════════════════════════════════════════════
+  tei-reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:1.6
+    pull_policy: never
+    container_name: tei-reranker
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    volumes:
+      - ./src/models/bge-reranker-v2-m3:/data
+    command: --model-id /data --dtype float16 --max-concurrent-requests 512 --max-batch-tokens 16384 --max-client-batch-size 128
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ══════════════════════════════════════════════════════════
+  # FastAPI 应用
+  # ══════════════════════════════════════════════════════════
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: react-agent-app
     ports:
       - "8000:8000"
     env_file:
-      - .env                  # 自动加载 .env 文件中的变量
+      - .env
     environment:
-      # 覆盖服务地址为容器名（必须）
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MILVUS_URI=http://milvus:19530
+      - MILVUS_URI=http://milvus-standalone:19530
       - NEO4J_URL=bolt://neo4j:7687
-      - OLLAMA_BASE_URL=http://ollama:11434
-      # 以下变量如果已在 .env 中定义，可以不用重复，但为了保险可以保留
-      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
+      - PG_HOST=postgres
+      - VLLM_REWRITE_URL=http://host.docker.internal:8001/v1
+      - VLLM_EXTRACT_URL=http://host.docker.internal:8002/v1
+      - TEI_RERANKER_URL=http://tei-reranker:80/rerank
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_HOST=http://langfuse-server:3000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      - ./models:/app/models   # 挂载模型目录（确保模型文件存在）
-      - ./logs:/app/logs       # 挂载日志目录
+      - ./src/models:/app/src/models
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./scripts:/app/scripts
     depends_on:
-      - redis
-      - milvus
-      - neo4j
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      milvus-standalone:
+        condition: service_healthy
+      langfuse-server:
+        condition: service_started
+      # worker 消费 trace 队列写入 ClickHouse；列为依赖，保证只重建 app 时它也在运行
+      langfuse-worker:
+        condition: service_started
+      tei-reranker:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # ══════════════════════════════════════════════════════════
+  # MCP 服务（把检索 / 知识图谱 / Agent 问答按 MCP 协议对外提供）
+  # 薄适配层：通过内网 HTTP 调用 app，不加载模型；与 app 同镜像内容，仅启动命令不同
+  # 鉴权：客户端须带 Authorization: Bearer ${MCP_ACCESS_TOKEN}；访问 app 使用服务账号自动登录
+  # ══════════════════════════════════════════════════════════
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile    # 与 app 同一 Dockerfile，构建层全部命中缓存
+    container_name: wow-mcp
+    command: ["python", "-m", "src.mcp_server.server", "--transport", "http"]
+    ports:
+      - "8100:8100"
+    environment:
+      - WOW_API_URL=http://app:8000
+      - WOW_API_USERNAME=${MCP_SERVICE_USERNAME:-mcp-service}
+      - WOW_API_PASSWORD=${MCP_SERVICE_PASSWORD}
+      - MCP_ACCESS_TOKEN=${MCP_ACCESS_TOKEN}
+      - MCP_PORT=8100
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8100/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
-  redis_data:
+  milvus_etcd_data:
+    driver: local
+  milvus_minio_data:
+    driver: local
   milvus_data:
+    driver: local
+  redis_data:
+    driver: local
   neo4j_data:
+    driver: local
+  pg_data:
+    driver: local
+  langfuse_db_data:
+    driver: local
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
 
 networks:
   app-network:
