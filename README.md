@@ -11,16 +11,16 @@ ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压
 
 - **演示录屏**：https://my.feishu.cn/wiki/MXPiwoSUoiXH8Rk6ytgcD0gvnbd
   
-- **数据飞轮 Agent**：https://github.com/Jkler879/WOW-Round3
+- **数据飞轮 Agent**：https://github.com/KeMeng-work/WOW-Round3
   
-- **生产级并发压测**：https://github.com/Jkler879/Wow-Production-Grade-Stress-Testing-Module
+- **生产级并发压测**：https://github.com/KeMeng-work/Wow-Production-Grade-Stress-Testing-Module
   
 - **在线演示**：服务器非 7 × 24 小时运行，如需体验前端请提前告知 kemeng_work@outlook.com
 
 ## 🖼️ 架构图
 
 <p align="center">
-  <a href="https://Jkler879.github.io/Wow_Multi-turn-Dialogue-System/architecture.html" target="_blank" rel="noopener noreferrer">
+  <a href="https://KeMeng-work.github.io/Wow_Multi-turn-Dialogue-System/architecture.html" target="_blank" rel="noopener noreferrer">
     <img src="./architecture_dark_v3.svg" alt="WOW多轮对话系统 RAG + ReAct Agent 系统架构图" width="100%">
   </a>
 </p>
