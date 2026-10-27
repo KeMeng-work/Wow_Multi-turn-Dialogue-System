@@ -1,0 +1,349 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1200 1600"
+     width="2400" height="3200"
+     font-family="'Segoe UI','SF Pro Display','PingFang SC','Microsoft YaHei',sans-serif">
+
+  <defs>
+    <marker id="ag" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#4b5563"/>
+    </marker>
+    <marker id="ay" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#fbbf24"/>
+    </marker>
+    <marker id="aor" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#f97316"/>
+    </marker>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#f43f5e"/>
+    </marker>
+    <marker id="ab" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0,9 3.5,0 7" fill="#3b82f6"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="1600" fill="#0d1117"/>
+
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#f0f6fc">多轮对话 RAG + ReAct Agent 系统架构</text>
+  <line x1="24" y1="42" x2="1176" y2="42" stroke="#21262d" stroke-width="1"/>
+
+  <!-- ══════════════════════════════════════════════
+       请求入口层
+  ══════════════════════════════════════════════ -->
+  <text x="34" y="68" font-size="11" font-weight="600" fill="#6b7280">请求入口层</text>
+
+  <rect x="40" y="72" width="200" height="50" rx="6" fill="#161b22" stroke="#06b6d4" stroke-width="1.5"/>
+  <text x="140" y="93" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">用户输入</text>
+  <text x="140" y="109" text-anchor="middle" font-size="10" fill="#94a3b8">FastAPI :8000 · SSE / JSON</text>
+
+  <line x1="240" y1="97" x2="256" y2="97" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <rect x="258" y="72" width="280" height="50" rx="6" fill="#161b22" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="398" y="93" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">速率限制</text>
+  <text x="398" y="109" text-anchor="middle" font-size="10" fill="#94a3b8">全局 5/s · 用户 20/s · query 3/s · Redis</text>
+
+  <line x1="538" y1="97" x2="554" y2="97" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <rect x="556" y="72" width="604" height="50" rx="6" fill="#161b22" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="858" y="93" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">熔断器</text>
+  <text x="858" y="109" text-anchor="middle" font-size="10" fill="#94a3b8">50% 失败率触发断路 30s · 指数退避重试 · 半开自动恢复</text>
+
+  <line x1="600" y1="130" x2="600" y2="146" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <!-- ══════════════════════════════════════════════
+       查询前处理层（淡青绿，区别于紫色记忆层）
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="142" x2="1176" y2="142" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="164" font-size="11" font-weight="600" fill="#6b7280">查询前处理层</text>
+
+  <rect x="40" y="168" width="1120" height="78" rx="6" fill="#161b22" stroke="#6ee7b7" stroke-width="1.5"/>
+  <text x="600" y="191" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">查询改写 + 意图分类</text>
+  <text x="600" y="208" text-anchor="middle" font-size="10" fill="#6ee7b7">qwen3-4B AWQ · vLLM :8001 · 规则预过滤：18个关键词直接判 direct（问候 / 身份 / 计算），跳过模型调用</text>
+  <text x="600" y="226" text-anchor="middle" font-size="11" fill="#c9d1d9">一次推理搭便车 → 输出三字段：en_query（英文改写）· zh_query（中文改写）· intent（local / web_search / direct）</text>
+
+  <line x1="600" y1="252" x2="600" y2="268" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <!-- ══════════════════════════════════════════════
+       高频查询缓存
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="264" x2="1176" y2="264" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="286" font-size="11" font-weight="600" fill="#6b7280">高频查询缓存</text>
+
+  <rect x="40" y="290" width="1120" height="50" rx="6" fill="#161b22" stroke="#f97316" stroke-width="1.5"/>
+  <text x="370" y="311" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">高频查询缓存</text>
+  <text x="370" y="330" text-anchor="middle" font-size="10" fill="#94a3b8">Bloom Filter + Redis · 阈值 5次/30min · 互斥锁防缓存击穿</text>
+  <line x1="740" y1="296" x2="740" y2="334" stroke="#374151" stroke-width="1"/>
+  <text x="930" y="311" text-anchor="middle" font-size="12" font-weight="600" fill="#f97316">Cache HIT →</text>
+  <text x="930" y="330" text-anchor="middle" font-size="10" fill="#94a3b8">直接返回，跳过 LLM / 检索 / Agent</text>
+
+  <!-- Cache HIT bypass（orange，matching cache box） -->
+  <path d="M 1160,315 L 1184,315 L 1184,992 L 810,992"
+        stroke="#f97316" stroke-width="1.8" fill="none"
+        stroke-dasharray="6,3" marker-end="url(#aor)"/>
+
+  <line x1="600" y1="346" x2="600" y2="362" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="610" y="357" font-size="9" fill="#4b5563" font-style="italic">Cache MISS</text>
+
+  <!-- ══════════════════════════════════════════════
+       记忆层（并发加载）
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="358" x2="1176" y2="358" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="380" font-size="11" font-weight="600" fill="#6b7280">记忆层（并发加载）</text>
+
+  <rect x="40" y="384" width="548" height="78" rx="6" fill="#161b22" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="314" y="407" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">短期记忆</text>
+  <text x="314" y="424" text-anchor="middle" font-size="10" fill="#a78bfa">Redis Hash + Sorted Set</text>
+  <text x="314" y="441" text-anchor="middle" font-size="11" fill="#c9d1d9">最近 5 轮对话 · 24h TTL · 注入 Agent system prompt</text>
+
+  <rect x="604" y="384" width="556" height="78" rx="6" fill="#161b22" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="882" y="407" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">长期记忆（pgvector）</text>
+  <text x="882" y="424" text-anchor="middle" font-size="10" fill="#a78bfa">PostgreSQL + pgvector 768维 · 四维评分检索 top-3</text>
+  <text x="882" y="441" text-anchor="middle" font-size="11" fill="#c9d1d9">similarity(0.5) · importance(0.2) · recency(0.2) · frequency(0.1) · 事实 / 偏好 / 情节</text>
+
+  <line x1="600" y1="470" x2="600" y2="486" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+
+  <!-- ══════════════════════════════════════════════
+       意图路由
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="482" x2="1176" y2="482" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="504" font-size="11" font-weight="600" fill="#6b7280">意图路由</text>
+
+  <rect x="350" y="506" width="440" height="48" rx="6" fill="#1a1505" stroke="#f59e0b" stroke-width="2"/>
+  <text x="570" y="527" text-anchor="middle" font-size="13" font-weight="700" fill="#f0f6fc">意图路由器</text>
+  <text x="460" y="546" text-anchor="middle" font-size="11" fill="#fbbf24">▸ direct</text>
+  <text x="572" y="546" text-anchor="middle" font-size="11" fill="#3b82f6">▸ local</text>
+  <text x="740" y="546" text-anchor="middle" font-size="11" fill="#f43f5e">▸ web_search</text>
+
+  <!-- Router → Context injection（direct=yellow, local=blue, web=red） -->
+  <line x1="460" y1="554" x2="460" y2="578" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#ay)"/>
+  <line x1="572" y1="554" x2="572" y2="578" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#ab)"/>
+  <line x1="740" y1="554" x2="740" y2="578" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- LLM 初始上下文注入 -->
+  <rect x="400" y="578" width="400" height="42" rx="6"
+        fill="#0d1117" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="600" y="596" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">LLM 初始上下文注入</text>
+  <text x="600" y="612" text-anchor="middle" font-size="10" fill="#94a3b8">短/长期记忆 + intent_rule → 动态组装 system prompt</text>
+
+  <!-- ══════════════════════════════════════════════
+       执行路径（boxes drawn before injection arrows）
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="632" x2="1176" y2="632" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="654" font-size="11" font-weight="600" fill="#6b7280">执行路径</text>
+
+  <!-- Direct（yellow border，no top bar overlay） -->
+  <rect x="40" y="658" width="316" height="110" rx="6" fill="#161b22" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="198" y="679" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">直接回答</text>
+  <text x="198" y="695" text-anchor="middle" font-size="10" fill="#fbbf24">qwen3-4B · vLLM</text>
+  <text x="198" y="711" text-anchor="middle" font-size="11" fill="#c9d1d9">direct任务强制模型不开启思考模式</text>
+  <text x="198" y="727" text-anchor="middle" font-size="11" fill="#c9d1d9">注入长短期记忆 + system prompt</text>
+  <text x="198" y="743" text-anchor="middle" font-size="11" fill="#c9d1d9">跳过 ReAct 循环，直接返回</text>
+  <text x="198" y="759" text-anchor="middle" font-size="10" fill="#94a3b8">问候 / 系统身份 / 基础计算</text>
+
+  <!-- Direct bypass（yellow，matching direct box） -->
+  <path d="M 40,713 L 16,713 L 16,992 L 330,992"
+        stroke="#fbbf24" stroke-width="1.8" fill="none"
+        stroke-dasharray="6,3" marker-end="url(#ay)"/>
+
+  <!-- Local（blue border，matching tool layer） -->
+  <rect x="372" y="658" width="400" height="110" rx="6" fill="#161b22" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="572" y="679" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">ReAct Agent（local）</text>
+  <text x="572" y="695" text-anchor="middle" font-size="10" fill="#3b82f6">LangGraph · qwen3-30b-a3b · enable_thinking</text>
+  <text x="572" y="711" text-anchor="middle" font-size="11" fill="#c9d1d9">短/长期记忆 + intent_rule → system prompt</text>
+  <text x="572" y="727" text-anchor="middle" font-size="11" fill="#c9d1d9">最多 5 步推理 · 仅 knowledge_retriever</text>
+  <text x="572" y="743" text-anchor="middle" font-size="11" fill="#c9d1d9">en_query 固定传入，禁止 Agent 自译</text>
+  <text x="572" y="759" text-anchor="middle" font-size="10" fill="#94a3b8">web_search 禁用</text>
+
+  <!-- Web（red border，no top bar overlay） -->
+  <rect x="788" y="658" width="372" height="110" rx="6" fill="#161b22" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="974" y="679" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">ReAct Agent（web_search）</text>
+  <text x="974" y="695" text-anchor="middle" font-size="10" fill="#f43f5e">LangGraph · qwen3-30b-a3b · enable_thinking</text>
+  <text x="974" y="711" text-anchor="middle" font-size="11" fill="#c9d1d9">短/长期记忆 + intent_rule → system prompt</text>
+  <text x="974" y="727" text-anchor="middle" font-size="11" fill="#c9d1d9">强制双路：knowledge_retriever 必须先调用</text>
+  <text x="974" y="743" text-anchor="middle" font-size="11" fill="#c9d1d9">web_search 强制后续触发</text>
+  <text x="974" y="759" text-anchor="middle" font-size="10" fill="#94a3b8">流式推送搜索词 + 来源 URL</text>
+
+  <!-- Context injection → execution paths（drawn AFTER boxes）
+       direct: yellow  |  local: gray  |  web: red -->
+  <path d="M 460,620 L 460,630 L 198,630 L 198,659"
+        stroke="#fbbf24" stroke-width="2" fill="none" marker-end="url(#ay)"/>
+  <path d="M 572,620 L 572,659"
+        stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#ab)"/>
+  <path d="M 740,620 L 740,630 L 974,630 L 974,659"
+        stroke="#f43f5e" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+
+  <!-- tool_call arrows（gray） -->
+  <line x1="572" y1="776" x2="572" y2="792" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+  <line x1="974" y1="776" x2="974" y2="792" stroke="#f43f5e" stroke-width="1.2" marker-end="url(#ar)"/>
+  <text x="582" y="787" font-size="9" fill="#4b5563" font-style="italic">tool_call</text>
+
+  <!-- ══════════════════════════════════════════════
+       工具层
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="788" x2="1176" y2="788" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="810" font-size="11" font-weight="600" fill="#6b7280">工具层（LangChain StructuredTool · ReAct 路径专用）</text>
+
+  <!-- Outer group frame for local-path tools（blue dashed） -->
+  <rect x="32" y="808" width="852" height="114" rx="8"
+        fill="none" stroke="#3b82f6" stroke-width="1"/>
+
+  <rect x="40" y="816" width="268" height="98" rx="6" fill="#161b22" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="174" y="837" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">knowledge_retriever</text>
+  <text x="174" y="853" text-anchor="middle" font-size="10" fill="#3b82f6">Milvus + BM25 + RRF(k=60)</text>
+  <text x="174" y="869" text-anchor="middle" font-size="10.5" fill="#c9d1d9">BGE Reranker v2 精排</text>
+  <text x="174" y="884" text-anchor="middle" font-size="9.5" fill="#94a3b8">ONNX INT8 CPU · nomic-embed</text>
+  <text x="174" y="899" text-anchor="middle" font-size="9.5" fill="#94a3b8">向量 top-10 + BM25 top-10 · 零 GPU</text>
+
+  <rect x="324" y="816" width="268" height="98" rx="6" fill="#161b22" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="458" y="837" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">relation_verifier</text>
+  <text x="458" y="853" text-anchor="middle" font-size="10" fill="#3b82f6">Neo4j · Cypher</text>
+  <text x="458" y="869" text-anchor="middle" font-size="10.5" fill="#c9d1d9">实体关系查询验证</text>
+  <text x="458" y="884" text-anchor="middle" font-size="9.5" fill="#94a3b8">confidence ≥ 0.5 过滤</text>
+  <text x="458" y="899" text-anchor="middle" font-size="9.5" fill="#94a3b8">1329节点 · 345关系</text>
+
+  <rect x="608" y="816" width="268" height="98" rx="6" fill="#161b22" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="742" y="837" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">translator</text>
+  <text x="742" y="853" text-anchor="middle" font-size="10" fill="#3b82f6">MarianMT · ONNX CPU</text>
+  <text x="742" y="869" text-anchor="middle" font-size="10.5" fill="#c9d1d9">encoder INT8 / decoder FP32</text>
+  <text x="742" y="884" text-anchor="middle" font-size="9.5" fill="#94a3b8">KV Cache 贪婪解码 · 2线程</text>
+  <text x="742" y="899" text-anchor="middle" font-size="9.5" fill="#94a3b8">opus-mt-en-zh</text>
+
+  <!-- web_search（red border） -->
+  <rect x="892" y="816" width="268" height="98" rx="6" fill="#161b22" stroke="#f43f5e" stroke-width="1.5"/>
+  <text x="1026" y="837" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">web_search</text>
+  <text x="1026" y="853" text-anchor="middle" font-size="10" fill="#f43f5e">百度千帆 ai_search/web_summary</text>
+  <text x="1026" y="869" text-anchor="middle" font-size="10.5" fill="#c9d1d9">摘要模式 · top_k=3 · 300字截断</text>
+  <text x="1026" y="884" text-anchor="middle" font-size="9.5" fill="#94a3b8">web_search 意图强制触发</text>
+  <text x="1026" y="899" text-anchor="middle" font-size="9.5" fill="#94a3b8">流式推送 query词 + 来源 URL</text>
+
+  <line x1="600" y1="922" x2="600" y2="966" stroke="#4b5563" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="610" y="946" font-size="9" fill="#4b5563" font-style="italic">ranked docs</text>
+
+  <!-- web_search → 响应输出（red L-shaped arrow） -->
+  <path d="M 1026,914 L 1026,946 L 810,946 L 810,966" stroke="#f43f5e" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+
+  <!-- ══════════════════════════════════════════════
+       响应输出
+  ══════════════════════════════════════════════ -->
+  <rect x="330" y="966" width="480" height="52" rx="6" fill="#0d1b2a" stroke="#06b6d4" stroke-width="2"/>
+  <text x="570" y="990" text-anchor="middle" font-size="14" font-weight="700" fill="#f0f6fc">响应输出</text>
+  <text x="570" y="1008" text-anchor="middle" font-size="10" fill="#06b6d4">SSE 流式 token · JSON · FastAPI :8000</text>
+
+  <!-- ══════════════════════════════════════════════
+       后台异步任务（分割线与离线任务区域样式一致）
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="1030" x2="1176" y2="1030" stroke="#21262d" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="34" y="1052" font-size="11" font-weight="600" fill="#6b7280">后台异步任务（asyncio.create_task，不阻塞响应）</text>
+
+  <rect x="40" y="1058" width="268" height="86" rx="6" fill="#161b22" stroke="#10b981" stroke-width="1.5"/>
+  <text x="174" y="1077" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">长期记忆写入</text>
+  <text x="174" y="1092" text-anchor="middle" font-size="9.5" fill="#10b981">asyncio · 不阻塞响应</text>
+  <text x="174" y="1107" text-anchor="middle" font-size="10" fill="#c9d1d9">① qwen3-1.7B 提取关键信息</text>
+  <text x="174" y="1121" text-anchor="middle" font-size="10" fill="#c9d1d9">② qwen3-4B 增删改查决策</text>
+  <text x="174" y="1136" text-anchor="middle" font-size="9.5" fill="#94a3b8">写入 PostgreSQL + pgvector</text>
+
+  <rect x="324" y="1058" width="268" height="86" rx="6" fill="#161b22" stroke="#10b981" stroke-width="1.5"/>
+  <text x="458" y="1077" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">RAGAS 在线评估</text>
+  <text x="458" y="1092" text-anchor="middle" font-size="9.5" fill="#10b981">15% 流量采样</text>
+  <text x="458" y="1107" text-anchor="middle" font-size="10" fill="#c9d1d9">context_precision · faithfulness</text>
+  <text x="458" y="1121" text-anchor="middle" font-size="10" fill="#c9d1d9">answer_relevancy</text>
+  <text x="458" y="1136" text-anchor="middle" font-size="9.5" fill="#94a3b8">judge: qwen-max · 结果→Langfuse</text>
+
+  <rect x="608" y="1058" width="268" height="86" rx="6" fill="#161b22" stroke="#10b981" stroke-width="1.5"/>
+  <text x="742" y="1077" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">高频缓存更新</text>
+  <text x="742" y="1092" text-anchor="middle" font-size="9.5" fill="#10b981">asyncio · 不阻塞响应</text>
+  <text x="742" y="1107" text-anchor="middle" font-size="10" fill="#c9d1d9">query 命中计数 +1</text>
+  <text x="742" y="1121" text-anchor="middle" font-size="10" fill="#c9d1d9">超阈值自动写入缓存</text>
+  <text x="742" y="1136" text-anchor="middle" font-size="9.5" fill="#94a3b8">Bloom Filter + Redis 更新</text>
+
+  <rect x="892" y="1058" width="268" height="86" rx="6" fill="#161b22" stroke="#10b981" stroke-width="1.5"/>
+  <text x="1026" y="1077" text-anchor="middle" font-size="12" font-weight="600" fill="#f0f6fc">PG 对话历史写入</text>
+  <text x="1026" y="1092" text-anchor="middle" font-size="9.5" fill="#10b981">asyncio · 不阻塞响应</text>
+  <text x="1026" y="1107" text-anchor="middle" font-size="10" fill="#c9d1d9">全量对话写入 PostgreSQL</text>
+  <text x="1026" y="1121" text-anchor="middle" font-size="10" fill="#c9d1d9">日期分区表 · asyncpg 池</text>
+  <text x="1026" y="1136" text-anchor="middle" font-size="9.5" fill="#94a3b8">指数退避重试</text>
+
+  <!-- ══════════════════════════════════════════════
+       可观测性
+  ══════════════════════════════════════════════ -->
+  <line x1="24" y1="1162" x2="1176" y2="1162" stroke="#21262d" stroke-width="0.5"/>
+  <text x="34" y="1184" font-size="11" font-weight="600" fill="#6b7280">可观测性</text>
+
+  <rect x="40" y="1190" width="1120" height="80" rx="6" fill="#161b22" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="600" y="1212" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">Langfuse v3（自托管）</text>
+  <text x="600" y="1229" text-anchor="middle" font-size="10" fill="#60a5fa">全链路 Trace · CallbackHandler · intent 标签（可按意图过滤分析）</text>
+  <text x="210" y="1247" text-anchor="middle" font-size="11" fill="#c9d1d9">各阶段延迟监控</text>
+  <text x="460" y="1247" text-anchor="middle" font-size="11" fill="#c9d1d9">工具调用统计</text>
+  <text x="730" y="1247" text-anchor="middle" font-size="11" fill="#c9d1d9">参数质量评分（零 LLM）</text>
+  <text x="990" y="1247" text-anchor="middle" font-size="11" fill="#c9d1d9">RAGAS 三指标注入</text>
+  <text x="600" y="1262" text-anchor="middle" font-size="10" fill="#94a3b8">knowledge_retriever query 规则评分 · 每次写入 Langfuse score</text>
+
+  <!-- Separator -->
+  <line x1="24" y1="1288" x2="1176" y2="1288" stroke="#21262d" stroke-width="1" stroke-dasharray="8,4"/>
+  <text x="600" y="1304" text-anchor="middle" font-size="11" fill="#4b5563" font-style="italic">— 以下为离线 / 定期任务，不在实时请求链路中 —</text>
+
+  <!-- ══════════════════════════════════════════════
+       离线 / 定期任务（三框统一颜色，无顶部色条）
+  ══════════════════════════════════════════════ -->
+  <text x="34" y="1330" font-size="11" font-weight="600" fill="#6b7280">离线 / 定期任务</text>
+
+  <rect x="40" y="1336" width="358" height="226" rx="6" fill="#161b22" stroke="#f472b6" stroke-width="1.5"/>
+  <text x="219" y="1358" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">RAGAS 离线评估</text>
+  <text x="219" y="1374" text-anchor="middle" font-size="10" fill="#f472b6">手动触发 · 独立评估脚本</text>
+  <text x="219" y="1393" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d1d9">── 数据集 ──</text>
+  <text x="219" y="1409" text-anchor="middle" font-size="10.5" fill="#c9d1d9">30-80条 · LLM 生成</text>
+  <text x="219" y="1425" text-anchor="middle" font-size="10.5" fill="#c9d1d9">{ question, ground_truth, contexts }</text>
+  <text x="219" y="1441" text-anchor="middle" font-size="10.5" fill="#c9d1d9">难度分层：easy / medium / hard</text>
+  <text x="219" y="1460" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d1d9">── 评估指标 ──</text>
+  <text x="219" y="1476" text-anchor="middle" font-size="10.5" fill="#c9d1d9">context_precision · faithfulness</text>
+  <text x="219" y="1492" text-anchor="middle" font-size="10.5" fill="#c9d1d9">answer_relevancy · answer_correctness</text>
+  <text x="219" y="1508" text-anchor="middle" font-size="10.5" fill="#c9d1d9">judge LLM: qwen-max</text>
+  <text x="219" y="1527" text-anchor="middle" font-size="10.5" font-weight="600" fill="#c9d1d9">── 输出 ──</text>
+  <text x="219" y="1543" text-anchor="middle" font-size="10" fill="#94a3b8">数字基准（如 context_precision=0.82）</text>
+  <text x="219" y="1556" text-anchor="middle" font-size="10" fill="#94a3b8">验证检索与生成质量</text>
+
+  <rect x="414" y="1336" width="372" height="226" rx="6" fill="#161b22" stroke="#f472b6" stroke-width="1.5"/>
+  <text x="600" y="1358" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">长期记忆反思</text>
+  <text x="600" y="1374" text-anchor="middle" font-size="10" fill="#f472b6">定期触发 · reflection_task.py</text>
+  <text x="600" y="1393" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d1d9">── 触发条件（满足其一）──</text>
+  <text x="600" y="1409" text-anchor="middle" font-size="10.5" fill="#c9d1d9">① 新增记忆 ≥ 20 条</text>
+  <text x="600" y="1425" text-anchor="middle" font-size="10.5" fill="#c9d1d9">② 距上次反思 ≥ 7 天</text>
+  <text x="600" y="1444" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d1d9">── 执行逻辑 ──</text>
+  <text x="600" y="1460" text-anchor="middle" font-size="10.5" fill="#c9d1d9">取高 importance 记忆</text>
+  <text x="600" y="1476" text-anchor="middle" font-size="10.5" fill="#c9d1d9">qwen3-4B 摘要提炼</text>
+  <text x="600" y="1492" text-anchor="middle" font-size="10.5" fill="#c9d1d9">生成更高层次的抽象记忆</text>
+  <text x="600" y="1508" text-anchor="middle" font-size="10.5" fill="#c9d1d9">写回 pgvector，importance 提升</text>
+  <text x="600" y="1527" text-anchor="middle" font-size="10.5" font-weight="600" fill="#c9d1d9">── 目的 ──</text>
+  <text x="600" y="1543" text-anchor="middle" font-size="10" fill="#94a3b8">防止记忆碎片化</text>
+  <text x="600" y="1556" text-anchor="middle" font-size="10" fill="#94a3b8">提炼用户偏好与知识模型</text>
+
+  <rect x="802" y="1336" width="358" height="226" rx="6" fill="#161b22" stroke="#f472b6" stroke-width="1.5"/>
+  <text x="981" y="1358" text-anchor="middle" font-size="13" font-weight="600" fill="#f0f6fc">长期记忆遗忘</text>
+  <text x="981" y="1374" text-anchor="middle" font-size="10" fill="#f472b6">定期触发 · forgetting_task.py</text>
+  <text x="981" y="1393" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d1d9">── 遗忘公式 ──</text>
+  <text x="981" y="1409" text-anchor="middle" font-size="10.5" fill="#c9d1d9">score × e^(−λ × Δt)</text>
+  <text x="981" y="1425" text-anchor="middle" font-size="10.5" fill="#c9d1d9">情节记忆 λ=0.03（快速衰减）</text>
+  <text x="981" y="1441" text-anchor="middle" font-size="10.5" fill="#c9d1d9">事实 / 偏好 λ=0.01（缓慢衰减）</text>
+  <text x="981" y="1460" text-anchor="middle" font-size="11" font-weight="600" fill="#c9d1d9">── 容量控制 ──</text>
+  <text x="981" y="1476" text-anchor="middle" font-size="10.5" fill="#c9d1d9">上限 500 条 / 用户</text>
+  <text x="981" y="1492" text-anchor="middle" font-size="10.5" fill="#c9d1d9">超出删除得分最低记忆</text>
+  <text x="981" y="1508" text-anchor="middle" font-size="10.5" fill="#c9d1d9">importance ≥ 0.8 受保护不删除</text>
+  <text x="981" y="1527" text-anchor="middle" font-size="10.5" font-weight="600" fill="#c9d1d9">── 目的 ──</text>
+  <text x="981" y="1543" text-anchor="middle" font-size="10" fill="#94a3b8">防止长期记忆无限膨胀</text>
+  <text x="981" y="1556" text-anchor="middle" font-size="10" fill="#94a3b8">保持检索质量，减少噪声干扰</text>
+
+  <!-- Footer -->
+  <line x1="24" y1="1576" x2="1176" y2="1576" stroke="#21262d" stroke-width="1"/>
+  <rect x="40" y="1582" width="148" height="16" rx="4" fill="#161b22" stroke="#21262d" stroke-width="1"/>
+  <text x="114" y="1593" text-anchor="middle" font-size="10" fill="#6b7280">PostgreSQL + pgvector</text>
+  <rect x="196" y="1582" width="66" height="16" rx="4" fill="#161b22" stroke="#21262d" stroke-width="1"/>
+  <text x="229" y="1593" text-anchor="middle" font-size="10" fill="#6b7280">Milvus</text>
+  <rect x="270" y="1582" width="58" height="16" rx="4" fill="#161b22" stroke="#21262d" stroke-width="1"/>
+  <text x="299" y="1593" text-anchor="middle" font-size="10" fill="#6b7280">Neo4j</text>
+  <rect x="336" y="1582" width="52" height="16" rx="4" fill="#161b22" stroke="#21262d" stroke-width="1"/>
+  <text x="362" y="1593" text-anchor="middle" font-size="10" fill="#6b7280">Redis</text>
+  <text x="870" y="1593" text-anchor="middle" font-size="10" fill="#4b5563">GPU: 阿里云 A10 24GB · vLLM: qwen3-4B AWQ :8001 / qwen3-1.7B :8002 · 云API: qwen3-30b-a3b / qwen-max</text>
+
+</svg>
