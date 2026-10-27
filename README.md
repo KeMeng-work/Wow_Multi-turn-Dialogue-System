@@ -200,7 +200,7 @@ ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压
 
 ## 🛠️ 技术栈
 
-| 层 | 技术 |
+| 模块 | 选型 |
 |---|---|
 | Agent 与模型 | LangGraph · Qwen3.5-35B-A3B（百炼）· Qwen3-4B / 1.7B（vLLM）· bge-reranker-v2-m3（TEI）· nomic-embed-text / opus-mt-en-zh（ONNX INT8） |
 | 存储 | Milvus 2.6 · Neo4j · PostgreSQL + pgvector · Redis Stack |
