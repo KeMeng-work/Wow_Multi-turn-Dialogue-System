@@ -6,7 +6,9 @@
 
 知识库来自 Wizard of Wikipedia 数据集，云端主模型（Qwen3.5-35B-A3B）负责推理，本地多模型负责改写、记忆与重排，单卡 A10 部署。
 
-包含以下核心模块：ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压测 / MCP封装 / 前端页面等
+包含以下核心模块：
+
+ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压测 / MCP封装 / 前端页面等
 
 
 - **演示录屏**：https://my.feishu.cn/wiki/MXPiwoSUoiXH8Rk6ytgcD0gvnbd
