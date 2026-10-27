@@ -145,53 +145,130 @@
 
 
 ## 📁 项目代码结构
-    ├── config/ - 配置文件
-      ├── congig_paths.py  # 集成配置管理
-      ├── paths.py  # 集成路径管理  
 
-    ├── src/ - 核心源代码
-      ├── main.py  # 核心处理逻辑
-      ├── api.py  # FastAPI 异步服务入口
-      ├── core/     
-        ├── query_rewrite/ - 查询改写
-           ├── query_rewriter.py  # 查询改写功能
-           ├── query_rewriter_test_case.py  # 模块测试用例
-           
-        ├── high_frequency_query_cache/ - 限流、熔断、高频查询缓存（Redis Bloom Filter）
-           ├── redis_bloom.py  # 高频查询缓存
-           ├── rate_limiter.py  # 限流器
-           ├── circuit_breaker.py  # 熔断器
-           ├── redis_bloom_test_case.py  # 模块测试用例
-  
-        ├── memory_short/ - 短期记忆（Redis Hash+SortedSet）
-           ├── redis_short_memory.py  # 短期记忆提取 + 短期记忆注入功能
-  
-        ├── memory_long/ - 长期记忆（PGvector + PostgreSQL）
-           |—— long_term_memory.py  # 长期记忆提取 + 长期记忆注入功能
-           
-        |—— reAct agent/  - Agent开发
-            |—— tools/ 工具集
-              |—— agent.py - # Agent 图构建与节点
-              |—— base.py -  # 工具工厂
-              |—— retrieval.py - # 混合检索重排工具
-              |—— relation_verifier.py - # 实体关系验证工具
-              |—— translate.py - # 翻译工具
-              |—— websearch.py - # 在线搜索工具              
-              
-        |—— redis-stream/ - 消息队列异步入库
-              |—— producer.py -  # 生产者（推送至 Redis Stream）
-              |—— milvus_consumer.py - # 消费者：写入 Milvus
-              |—— neo4j_consumer.py - # 消费者：写入 Neo4j
-              |—— create_milvus_collection.py - # 创建Milvus知识库集合及索引（初始化运行一次）
-              |—— long_memory_collection.py - # 创建PGvector长期记忆集合及索引（初始化运行一次）
-            
-      |—— chunking/ - 数据预处理模块
-      ├── models/ - 本地模型（当前为空，参考moedl.txt文件下载）
-      ├── quantization/ - 量化后模型（当前为空，参考moedl.txt文件下载）
-      ├── data/ - 源数据
-      ├── .env.example - 环境变量模板（示例）
-      ├── .gitignore - Git 忽略文件
-      ├── docker-compose.yml - Docker Compose 编排文件
-      ├── Dockerfile - 应用镜像构建文件
-      ├── requirements.txt - Python 依赖列表
-      ├── README.md - 项目说明文档
+```text
+Wow_Multi-turn-Dialogue-System/
+├── config/ - 配置
+│   ├── config_path.py  # 集成配置管理（各模块配置对象统一导出）
+│   ├── paths.py  # 集成路径管理
+│   └── redis_conf  # Redis Stack 配置
+│
+├── init/ - PostgreSQL 初始化脚本（容器首次启动自动执行）
+│   ├── 01_schema_conversation.sql  # 对话历史表（按日期分区）
+│   ├── 02_schema_vector.sql  # pgvector 扩展
+│   └── 03_schema_long_term_memory.sql  # 长期记忆表（含向量索引）
+│
+├── ontology/ - 知识图谱本体（OWL 2 / RDF）
+│   ├── wow_ontology.ttl  # 实体类型、关系与互斥约束（唯一标准）
+│   └── wow_shapes.ttl  # SHACL 校验规则
+│
+├── src/ - 核心源代码
+│   ├── main.py  # 核心处理逻辑（请求全链路编排）
+│   ├── api.py  # FastAPI 异步服务入口（对话 / 会话 / 记忆 / 反馈 / 工具接口）
+│   ├── eval_handler.py  # 飞轮评估专用处理器（/chat_eval，与生产路径隔离）
+│   │
+│   ├── web/ - 交互前端
+│   │   ├── index.html  # SSE 流式展示推理过程、工具步骤与回答依据
+│   │   └── static/  # marked.js（Markdown 渲染）、purify.js（XSS 过滤）
+│   │
+│   ├── mcp_server/ - MCP 服务
+│   │   └── server.py  # 对外暴露 3 个只读工具（知识检索 / 关系验证 / 问答），令牌鉴权
+│   │
+│   └── core/
+│       ├── auth.py  # 登录认证（bcrypt + JWT，三角色）
+│       ├── session_store.py  # 会话软删除
+│       ├── feedback.py  # 用户点赞 / 点踩，回流数据飞轮
+│       ├── resilience.py  # 过载保护（准入控制、舱壁隔离）与运行时指标
+│       ├── reasoning_chat.py  # 支持原生思考过程的 ChatOpenAI 扩展（百炼主模型）
+│       ├── vllm_client.py  # 本地 vLLM 调用客户端
+│       │
+│       ├── query_rewrite/ - 查询改写
+│       │   ├── query_rewriter.py  # 指代消解、中英双语改写、意图与题型分类
+│       │   └── query_rewrite_test_case.py  # 模块测试用例
+│       │
+│       ├── high_frequency_query_cache/ - 限流、熔断、高频查询缓存（Redis Bloom Filter）
+│       │   ├── redis_bloom.py  # 高频查询缓存
+│       │   ├── rate_limiter.py  # 三级令牌桶限流
+│       │   ├── circuit_breaker.py  # 滑动窗口熔断器
+│       │   └── redis_bloom_test_case.py  # 模块测试用例
+│       │
+│       ├── memory_short/ - 短期记忆（Redis 热存储 + PostgreSQL 快照）
+│       │   ├── stm_service.py  # 短期记忆服务入口（读取 / 生效 / 写入 / PG 恢复）
+│       │   ├── session_state.py  # 结构化会话状态（约束 / 话题 / 摘要 / 实体 / 事实三元组）
+│       │   ├── context_builder.py  # 按 token 预算分层组装上下文（改写器 / Agent）
+│       │   ├── compactor.py  # 后台异步压缩（话题摘要 + 事实抽取）
+│       │   ├── redis_short_memory.py  # Redis 存储（Lua 原子读写 + 版本号 CAS）
+│       │   ├── session_store_pg.py  # 会话状态 PG 快照与恢复
+│       │   └── stm_test.py  # 单元测试（34 项）
+│       │
+│       ├── memory_long/ - 长期记忆（PostgreSQL + pgvector）
+│       │   ├── long_term_memory.py  # 写入门槛、抽取、合并决策、召回与注入
+│       │   ├── recall_gate.py  # 召回门（1.7B 判断问题是否需要个人背景）
+│       │   ├── forgetting_task.py  # 遗忘（容量淘汰、分数衰减）
+│       │   ├── reflection_task.py  # 记忆反思（低层记忆归纳为高层洞察）
+│       │   └── ltm_write_gate_test.py  # 写入门槛单元测试
+│       │
+│       ├── conversation_data_postgresql/ - 全量对话历史
+│       │   └── conversation_data.py  # asyncpg 连接池、分区表、指数退避重试
+│       │
+│       ├── ReAct_Agent/ - Agent 开发
+│       │   └── tools/ - 工具集
+│       │       ├── agent.py  # Agent 图构建与节点（LangGraph）
+│       │       ├── base.py  # 工具工厂
+│       │       ├── retriever.py  # 混合检索 + RRF 融合 + MaxP 重排 + 证据分级
+│       │       ├── relation_verifier.py  # 实体关系验证工具（知识图谱）
+│       │       ├── translate.py  # 翻译工具
+│       │       └── web_search.py  # 在线搜索工具（含注入防护）
+│       │
+│       ├── kg/ - 知识图谱
+│       │   ├── linker.py  # 实体链接（Aho-Corasick 词典 + 消歧）
+│       │   └── ontology.py  # 本体加载，生成校验规则与 Neo4j 约束
+│       │
+│       ├── security/ - 安全管控
+│       │   ├── context.py  # 请求安全上下文（用户 / 会话 / 角色）
+│       │   ├── pii.py  # 可逆脱敏
+│       │   ├── injection.py  # 注入检测
+│       │   └── events.py  # 安全事件审计
+│       │
+│       ├── evaluation/ - 在线评估
+│       │   └── ragas_evaluator.py  # 按采样率异步评估，结果回写 Langfuse
+│       │
+│       ├── postprocess/ - 回答后处理
+│       │   └── detectors.py  # 规则检测器（只打分监控，不改写答案）
+│       │
+│       ├── embedder/ - 向量化
+│       │   └── onnx_embedder.py  # ONNX 推理的 Embedding 模型
+│       │
+│       ├── redis-stream/ - 消息队列异步入库
+│       │   ├── producer.py  # 生产者：知识库数据推送至 Redis Stream
+│       │   ├── producer_kg.py  # 生产者：知识图谱数据推送至 Redis Stream
+│       │   ├── consumer_milvus.py  # 消费者：写入 Milvus
+│       │   ├── consumer_neo4j.py  # 消费者：写入 Neo4j
+│       │   ├── create_milvus_collection.py  # 创建 Milvus 知识库集合及索引（初始化运行一次）
+│       │   ├── long_memory_collection.py  # 创建 pgvector 长期记忆集合及索引（初始化运行一次）
+│       │   ├── migrate_milvus.py  # Milvus 集合迁移（新增 BM25 全文检索）
+│       │   └── migrate_milvus_test.py  # 迁移测试
+│       │
+│       └── chunking/ - 数据预处理模块
+│
+├── scripts/ - 评测、标定、知识库构建与运维脚本
+│   ├── eval_stm.py / eval_ltm_extract.py / eval_ltm_gate.py  # 记忆模块评测
+│   ├── run_eval_baseline.py / run_ragas_offline.py / significance_test.py  # RAGAS 评测与显著性检验
+│   ├── calibrate_ltm_threshold.py  # 长期记忆召回阈值标定
+│   ├── kg_build.py / kg_select_records.py / kg_audit_import.py  # 知识图谱构建与入库审计
+│   ├── start_vllm_4b.sh / start_vllm_1b7.sh / stop_vllm.sh  # vLLM 双实例启停
+│   ├── setup_server.sh  # 服务器初始化
+│   └── create_user.py  # 创建账号
+│
+├── knowledge/ - LangChain 1.0 用法模板
+├── models/ - 本地模型（不上传）
+├── quantization/ - 量化后模型（不上传）
+├── data/ - 源数据（不上传）
+├── .env.example - 环境变量模板
+├── .gitignore - Git 忽略文件
+├── .dockerignore - Docker 构建忽略文件
+├── docker-compose.yml - Docker Compose 编排文件
+├── Dockerfile - 应用镜像构建文件
+├── requirements.txt - Python 依赖列表
+└── README.md - 项目说明文档
+```
