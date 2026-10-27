@@ -2,18 +2,15 @@
 
 **ReAct Agent** + **Rag** 开发的**生产级多轮对话系统**，包含以下核心功能：
 
-  - ReAct Agent 自主规划 / 查询改写 / 长短期记忆机制 / 限流 · 缓存 · 熔断 / 意图分类
-  
-  - 混合检索深度优化 / 知识图谱关系校验 / 在线搜索嵌入
-  
-  - GPU vLLM + TEI 双框架模型部署 / Langfuse在线监控 + RAGAS离线指标评估 / 前端页面展示
+  - ReAct 多工具编排 / 多模型部署 / GraphRAG / 数据飞轮Agent / 并发压测 / MCP封装 / 前端页面等
+    
 
   - 独立数据飞轮 Agent： https://github.com/Jkler879/WOW-Round3
   
   - 生产级并发压测： https://github.com/Jkler879/Wow-Production-Grade-Stress-Testing-Module
 
 
-  **演示录频（无需登录）**：https://my.feishu.cn/wiki/MXPiwoSUoiXH8Rk6ytgcD0gvnbd
+  **演示录频**：https://my.feishu.cn/wiki/MXPiwoSUoiXH8Rk6ytgcD0gvnbd
   
   **在线演示**：项目完整代码均已同步 Github，如需在线体验前端界面请提前告知（服务器非 7 * 24 小时运行）
   
