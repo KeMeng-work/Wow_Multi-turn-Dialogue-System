@@ -2,7 +2,7 @@
 
 **WOW · ReAct Agent + RAG 多轮对话系统**
 
-基于 Wizard of Wikipedia 多轮对话数据集搭建知识库，云端主模型（Qwen3.5-35B-A3B）负责 ReAct Agent 推理，本地多模型负责改写、记忆与重排，Aliyun 单卡 A10 部署。
+基于 Meta AI - Wizard of Wikipedia 多轮对话数据集搭建知识库，云端主模型（Qwen3.5-35B-A3B）负责 ReAct Agent 推理，本地多模型负责改写、记忆与重排，Aliyun 单卡 A10 部署。
 
 包含以下核心模块：
 
