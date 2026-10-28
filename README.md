@@ -4,11 +4,13 @@
 
 基于 Meta AI - Wizard of Wikipedia 多轮对话数据集搭建知识库，云端主模型（Qwen3.5-35B-A3B）负责 ReAct Agent 推理，本地多模型负责改写、记忆与重排，Aliyun 单卡 A10 部署。
 
-包含以下核心模块：
 
-ReAct 多工具编排 / 多层记忆 / GraphRAG / 数据飞轮Agent / 并发压测 / MCP服务封装 / 前端页面等
+**核心模块：**
+ReAct 多工具编排 / 分层会话状态治理 / GraphRAG / 数据飞轮Agent / SLO并发压测 / MCP服务封装 / SSE交互前端等
 
 
+---
+**🔗 快速链接：**
 - **演示录屏**：https://my.feishu.cn/wiki/MXPiwoSUoiXH8Rk6ytgcD0gvnbd
   
 - **数据飞轮 Agent**：https://github.com/KeMeng-work/WOW-Round3
@@ -16,6 +18,8 @@ ReAct 多工具编排 / 多层记忆 / GraphRAG / 数据飞轮Agent / 并发压�
 - **生产级并发压测**：https://github.com/KeMeng-work/Wow-Production-Grade-Stress-Testing-Module
   
 - **在线演示**：服务器非 7 × 24 小时运行，如需体验前端请提前告知 kemeng_work@outlook.com
+
+
 
 ## 🖼️ 架构图
 
