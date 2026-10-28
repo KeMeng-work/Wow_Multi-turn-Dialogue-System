@@ -160,7 +160,7 @@ ReAct 多工具编排 / 多层记忆 / GraphRAG / 数据飞轮Agent / 并发压�
 </details>
 
 <details>
-<summary><b>4、数据预处理与知识图谱增强</b></summary>
+<summary><b>4、知识图谱增强</b></summary>
 
 | 模块 | 实现方式 |
 |---|---|
