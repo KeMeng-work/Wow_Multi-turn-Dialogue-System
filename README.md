@@ -145,7 +145,7 @@ ReAct 多工具编排 / 多层记忆 / GraphRAG / 数据飞轮Agent / 并发压�
 </details>
 
 <details>
-<summary><b>3、检索系统深度优化</b></summary>
+<summary><b>3、检索工具深度优化</b></summary>
 
 | 模块 | 实现方式 |
 |---|---|
