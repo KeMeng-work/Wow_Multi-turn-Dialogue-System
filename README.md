@@ -6,7 +6,7 @@
 
 包含以下核心模块：
 
-ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压测 / MCP封装 / 前端页面等
+ReAct 多工具编排 / 多层记忆 / GraphRAG / 数据飞轮Agent / 并发压测 / MCP服务封装 / 前端页面等
 
 
 - **演示录屏**：https://my.feishu.cn/wiki/MXPiwoSUoiXH8Rk6ytgcD0gvnbd
