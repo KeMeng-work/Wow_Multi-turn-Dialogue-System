@@ -70,7 +70,7 @@ ReAct 多工具编排 /多模型部署/ GraphRAG / 数据飞轮Agent / 并发压
 <details>
 <summary><b>1、多轮对话与分层记忆</b></summary>
 
-**查询改写**：本地 `Qwen3-4B` 读取短期记忆（约 1400 token）+ `few-shot prompt`，输出 `JSON Schema` 约束的结构化结果
+**查询改写**：本地 `Qwen3-4B` 读取短期记忆（1400 token上限）+ `few-shot prompt`，输出 `JSON Schema` 约束的结构化结果
 
 | 模块 | 实现方式 |
 |---|---|
